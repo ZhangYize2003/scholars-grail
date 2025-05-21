@@ -38,4 +38,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 ## Add Node Modules
 
 run npm install firebase
+
 run npm install react-firebase-hooks
+
+run npm install react-icons
