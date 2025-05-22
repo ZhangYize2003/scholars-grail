@@ -2,7 +2,12 @@ import Link from 'next/link';
 import { FiHome, FiFileText, FiFolder, FiUsers, FiSettings, FiLogOut} from "react-icons/fi";
 import { useRouter } from "next/navigation";
 
-const SideBar = () => {
+interface SideBarProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+const SideBar = ({isOpen, onClose}: SideBarProps) => {
     const router = useRouter();
 
     const handleSignOut = () => {
@@ -10,9 +15,9 @@ const SideBar = () => {
         router.replace("/login");
     };
     return (
-        <div className="fixed top-0 left-0 h-screen w-50 m-0 flex flex-col
-                        bg-gray-800 text-white shadow-lg">
-            <div className="pt-20 space-y-1">
+        <div className={`fixed top-15 left-0 h-screen w-50 bg-gray-800 text-white shadow-lg transform 
+                        transition-transform duration-300 z-50 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="pt-3">
                 <Link href="/" className="w-full hover:bg-gray-900 transition-colors text-left">
                 <SideBarIcon icon ={<FiHome size = "20" />} text = "Home" />
                 </Link>
@@ -27,7 +32,7 @@ const SideBar = () => {
                 </Link>
             </div>
 
-                <div className="mt-auto flex flex-col">
+                <div className="mt-95 flex flex-col">
                     <button onClick={handleSignOut}>
                     <SideBarIcon icon = {<FiLogOut size="20" />} text = "Sign Out" />
                     </button>
@@ -40,7 +45,7 @@ const SideBar = () => {
 }
 
 const SideBarIcon = ({ icon, text }: { icon: React.ReactNode; text: string}) => (
-    <div className="sidebar-icon group flex items-center p-4 hover:bg-gray-900 cursor-pointer">
+    <div className="sidebar-icon group flex items-center p-4 ml-2 mr-2 hover:bg-gray-900 cursor-pointer rounded-xl">
         {icon}
         <span className="ml-4 text-sm font-normal text-gray-200 group-hover:text-white">
         {text}
