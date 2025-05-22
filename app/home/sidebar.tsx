@@ -1,12 +1,9 @@
+import Link from 'next/link';
 import { FiHome, FiFileText, FiFolder, FiUsers, FiSettings, FiLogOut} from "react-icons/fi";
 import { useRouter } from "next/navigation";
 
 const SideBar = () => {
     const router = useRouter();
-
-    const handleNavigation = (path: string) => {
-        router.replace(path);
-    };
 
     const handleSignOut = () => {
         localStorage.removeItem("isLoggedIn");
@@ -16,31 +13,27 @@ const SideBar = () => {
         <div className="fixed top-0 left-0 h-screen w-50 m-0 flex flex-col
                         bg-gray-800 text-white shadow-lg">
             <div className="pt-20 space-y-1">
-                <button className="w-full hover:bg-gray-900 transition-colors text-left" 
-                onClick={() => handleNavigation("/")}>
+                <Link href="/" className="w-full hover:bg-gray-900 transition-colors text-left">
                 <SideBarIcon icon ={<FiHome size = "20" />} text = "Home" />
-                </button>
-                <button className="w-full hover:bg-gray-900 transition-colors text-left" 
-                onClick={() => handleNavigation("/")}> {/* Placeholder function */}
+                </Link>
+                <Link href="/" className="w-full hover:bg-gray-900 transition-colors text-left"> {/* Placeholder href */}
                 <SideBarIcon icon ={<FiFileText size = "20" />} text = "Mark Paper" />
-                </button>
-                <button className="w-full hover:bg-gray-900 transition-colors text-left" 
-                onClick={() => handleNavigation("/")}> {/* Placeholder function */}
+                </Link>
+                <Link href="/" className="w-full hover:bg-gray-900 transition-colors text-left"> {/* Placeholder href */}
                 <SideBarIcon icon ={<FiFolder size = "20" />} text = "Repository" />
-                </button>
-                <button className="w-full hover:bg-gray-900 transition-colors text-left" 
-                onClick={() => handleNavigation("/")}> {/* Placeholder function */}
+                </Link>
+                <Link href="/" className="w-full hover:bg-gray-900 transition-colors text-left"> {/* Placeholder href */}
                 <SideBarIcon icon ={<FiUsers size = "20" />} text = "Friends" />
-                </button>
+                </Link>
             </div>
 
                 <div className="mt-auto flex flex-col">
                     <button onClick={handleSignOut}>
                     <SideBarIcon icon = {<FiLogOut size="20" />} text = "Sign Out" />
                     </button>
-                    <button onClick={() => handleNavigation("/")}> {/* Placeholder function */}
+                    <Link href="/"> {/* Placeholder href */}
                     <SideBarIcon icon = {<FiSettings size="20" />} text = "Settings" />
-                    </button>
+                    </Link>
             </div>
         </div>
     );
