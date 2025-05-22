@@ -1,9 +1,12 @@
-"use client"
 import { FiHome, FiFileText, FiFolder, FiUsers, FiSettings, FiLogOut} from "react-icons/fi";
 import { useRouter } from "next/navigation";
 
 const SideBar = () => {
     const router = useRouter();
+
+    const handleNavigation = (path: string) => {
+        router.replace(path);
+    };
 
     const handleSignOut = () => {
         localStorage.removeItem("isLoggedIn");
@@ -14,19 +17,19 @@ const SideBar = () => {
                         bg-gray-800 text-white shadow-lg">
             <div className="pt-20 space-y-1">
                 <button className="w-full hover:bg-gray-900 transition-colors text-left" 
-                onClick={handleSignOut}> {/* Placeholder function */}
+                onClick={() => handleNavigation("/")}>
                 <SideBarIcon icon ={<FiHome size = "20" />} text = "Home" />
                 </button>
                 <button className="w-full hover:bg-gray-900 transition-colors text-left" 
-                onClick={handleSignOut}> {/* Placeholder function */}
+                onClick={() => handleNavigation("/")}> {/* Placeholder function */}
                 <SideBarIcon icon ={<FiFileText size = "20" />} text = "Mark Paper" />
                 </button>
                 <button className="w-full hover:bg-gray-900 transition-colors text-left" 
-                onClick={handleSignOut}> {/* Placeholder function */}
+                onClick={() => handleNavigation("/")}> {/* Placeholder function */}
                 <SideBarIcon icon ={<FiFolder size = "20" />} text = "Repository" />
                 </button>
                 <button className="w-full hover:bg-gray-900 transition-colors text-left" 
-                onClick={handleSignOut}> {/* Placeholder function */}
+                onClick={() => handleNavigation("/")}> {/* Placeholder function */}
                 <SideBarIcon icon ={<FiUsers size = "20" />} text = "Friends" />
                 </button>
             </div>
@@ -35,7 +38,7 @@ const SideBar = () => {
                     <button onClick={handleSignOut}>
                     <SideBarIcon icon = {<FiLogOut size="20" />} text = "Sign Out" />
                     </button>
-                    <button onClick={handleSignOut}> {/* Placeholder function */}
+                    <button onClick={() => handleNavigation("/")}> {/* Placeholder function */}
                     <SideBarIcon icon = {<FiSettings size="20" />} text = "Settings" />
                     </button>
             </div>
