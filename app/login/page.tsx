@@ -5,6 +5,19 @@ import { auth } from '../firebase/config';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+function getFirebaseErrorMessage(error: unknown) {
+  if (!error) return "";
+  // react-firebase-hooks returns error as FirebaseError
+  const code = (error as { code?: string }).code;
+  console.log(code)
+  switch (code) {
+    case "auth/invalid-credential":
+      return "Invalid Email / Password.";
+    default:
+      return (error as Error)?.message || "An unknown error occurred.";
+  }
+}
+
 export default function SignInPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -31,14 +44,16 @@ export default function SignInPage() {
     try {
         const res = await signInWithEmailAndPassword(email, password);
         console.log({res});
-        setEmail('');
         setPassword('');
-        router.push('/');
+        if (res){
+          setEmail('');
+          router.push('/');
+          localStorage.setItem("isLoggedIn", "true");
+        }
     } catch (err) {
         setError('Invalid email or password');
     }
 };
-
 
 return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -52,7 +67,7 @@ return (
             <div className="rounded-md shadow-sm space-y-4">
                 {(error || firebaseError) && (
                     <div className="text-red-500 text-sm text-center">
-                        {error || (firebaseError as Error)?.message}
+                        {error || getFirebaseErrorMessage(firebaseError)}
                     </div>
                 )}
 
