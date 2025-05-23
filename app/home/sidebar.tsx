@@ -16,7 +16,8 @@ const SideBar = ({isOpen, onClose}: SideBarProps) => {
     };
     return (
         <div className={`fixed top-15 left-0 h-screen w-50 bg-gray-800 text-white shadow-lg transform 
-                        transition-transform duration-300 z-50 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                        transition-transform duration-300 z-50 flex flex-col justify-between
+                        ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="pt-3">
                 <Link href="/" className="w-full hover:bg-gray-900 transition-colors text-left">
                 <SideBarIcon icon ={<FiHome size = "20" />} text = "Home" />
@@ -32,7 +33,7 @@ const SideBar = ({isOpen, onClose}: SideBarProps) => {
                 </Link>
             </div>
 
-                <div className="mt-95 flex flex-col">
+                <div className="mb-19 flex flex-col">
                     <button onClick={handleSignOut}>
                     <SideBarIcon icon = {<FiLogOut size="20" />} text = "Sign Out" />
                     </button>
