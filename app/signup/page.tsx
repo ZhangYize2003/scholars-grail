@@ -123,12 +123,9 @@ export default function SignUpPage() {
             )}
           </button>
 
-          <div className="text-center text-sm">
+          <div className="text-center text-sm linktext_format">
             <span className="text-gray-400">Already have an account? </span>
-            <Link
-              href="/login"
-              className="linktext_format"
-            >
+            <Link href="/login">
               Sign in
             </Link>
           </div>

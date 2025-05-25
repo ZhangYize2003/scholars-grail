@@ -116,11 +116,8 @@ return (
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <Link
-                href="/login/forgot-password"
-                className="linktext_format"
-              >
+            <div className="text-sm linktext_format">
+              <Link href="/login/forgot-password">
                 Forgot your password?
               </Link>
             </div>
@@ -138,12 +135,9 @@ return (
             )}
           </button>
 
-          <div className="text-center text-sm">
+          <div className="text-center text-sm linktext_format">
             <span className="text-gray-400">Don't have an account? </span>
-            <Link
-              href="/signup"
-              className="linktext_format"
-            >
+            <Link href="/signup">
               Sign up
             </Link>
           </div>
