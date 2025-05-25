@@ -1,6 +1,6 @@
 "use client"
-import { useState } from 'react';
-import { useSignInWithEmailAndPassword } from 'react-firebase-hooks/auth';
+import { useEffect, useState } from 'react';
+import { useSignInWithEmailAndPassword, useSignInWithGoogle } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase/config';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -24,6 +24,13 @@ export default function SignInPage() {
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
+    const [signInWithGoogle, googleUser, googleLoading, googleError] = useSignInWithGoogle(auth);
+    useEffect(() => {
+      if (googleUser) {
+        localStorage.setItem("isLoggedIn", "true");
+        router.push("/");
+      }
+    }, [googleUser, router]);
 
     const [
         signInWithEmailAndPassword,
@@ -31,7 +38,7 @@ export default function SignInPage() {
         loading,
         firebaseError,
     ] = useSignInWithEmailAndPassword(auth);
-
+    
     const handleSignIn = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -40,7 +47,7 @@ export default function SignInPage() {
         setError('All fields are required');
         return;
     }
-
+    
     try {
         const res = await signInWithEmailAndPassword(email, password);
         console.log({res});
@@ -141,6 +148,23 @@ return (
               Sign up
             </Link>
           </div>
+          <div className="flex w-full items-center gap-2 py-6 text-sm text-slate-200">
+            <div className="h-px w-full bg-slate-200"></div>
+            OR
+            <div className="h-px w-full bg-slate-200"></div>
+          </div>
+          <button 
+            type="button" 
+            className="flex items-center gap-2 button_format bg-white hover:bg-gray-300 text-black"
+            onClick={() => signInWithGoogle()}
+            >
+            <img
+              src="https://www.svgrepo.com/show/475656/google-color.svg"
+              alt="Google"
+              className="h-[18px] w-[18px]"
+            />
+            Continue with Google
+          </button>
         </form>
       </div>
     </div>
