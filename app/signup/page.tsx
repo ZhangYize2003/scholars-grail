@@ -40,32 +40,20 @@ export default function SignUpPage() {
     }
   };
 
-//   return (
-//     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-//       <h1 className="text-3xl font-bold text-black">
-//         Create an Account
-//       </h1>
-//     </div>
-//   );
-// }
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="background_colour">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h1 className="mt-6 text-center text-3xl font-extrabold text-white">
-            Create an Account
-          </h1>
+          <h1> Create an Account </h1>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSignUp}>
           <div className="rounded-md shadow-sm space-y-4">
             {error && (
-              <div className="text-red-500 text-sm text-center">{error}</div>
+              <div className="error">{error}</div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
-                Email address
-              </label>
+              <label htmlFor="email"> Email address </label>
               <input
                 id="email"
                 name="email"
@@ -74,13 +62,13 @@ export default function SignUpPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 bg-gray-800 text-white appearance-none relative block w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="placeholder_text"
                 placeholder="Enter your email"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="password">
                 Password
               </label>
               <div className="mt-1 relative">
@@ -92,13 +80,13 @@ export default function SignUpPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-gray-800 text-white appearance-none relative block w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="placeholder_text"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400"
+                  className="showhide_password"
                 >
                   {showPassword ? '👁️' : '👁️'}
                 </button>
@@ -106,7 +94,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="confirm-password">
                 Confirm Password
               </label>
               <input
@@ -117,7 +105,7 @@ export default function SignUpPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 bg-gray-800 text-white appearance-none relative block w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="placeholder_text"
                 placeholder="Confirm your password"
               />
             </div>
@@ -126,10 +114,10 @@ export default function SignUpPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="button_format"
           >
             {isLoading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <div className="loading"></div>
             ) : (
               'Sign Up'
             )}
@@ -139,7 +127,7 @@ export default function SignUpPage() {
             <span className="text-gray-400">Already have an account? </span>
             <Link
               href="/login"
-              className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              className="linktext_format"
             >
               Sign in
             </Link>

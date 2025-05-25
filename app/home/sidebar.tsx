@@ -19,16 +19,16 @@ const SideBar = ({isOpen, onClose}: SideBarProps) => {
                         transition-transform duration-300 z-50 flex flex-col justify-between
                         ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="pt-3">
-                <Link href="/" className="w-full hover:bg-gray-900 transition-colors text-left">
+                <Link href="/" className="sidebar_button">
                 <SideBarIcon icon ={<FiHome size = "20" />} text = "Home" />
                 </Link>
-                <Link href="/" className="w-full hover:bg-gray-900 transition-colors text-left"> {/* Placeholder href */}
+                <Link href="/" className="sidebar_button"> {/* Placeholder href */}
                 <SideBarIcon icon ={<FiFileText size = "20" />} text = "Mark Paper" />
                 </Link>
-                <Link href="/" className="w-full hover:bg-gray-900 transition-colors text-left"> {/* Placeholder href */}
+                <Link href="/" className="sidebar_button"> {/* Placeholder href */}
                 <SideBarIcon icon ={<FiFolder size = "20" />} text = "Repository" />
                 </Link>
-                <Link href="/" className="w-full hover:bg-gray-900 transition-colors text-left"> {/* Placeholder href */}
+                <Link href="/" className="sidebar_button"> {/* Placeholder href */}
                 <SideBarIcon icon ={<FiUsers size = "20" />} text = "Friends" />
                 </Link>
             </div>

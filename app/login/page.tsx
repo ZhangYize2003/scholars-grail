@@ -56,23 +56,23 @@ export default function SignInPage() {
 };
 
 return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="background_colour">
         <div className="max-w-md w-full space-y-8">
             <div>
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
+                <h1>
                 Sign In to Your Account
-                </h2>
+                </h1>
             </div>
         <form className="mt-8 space-y-6" onSubmit={handleSignIn}>
             <div className="rounded-md shadow-sm space-y-4">
                 {(error || firebaseError) && (
-                    <div className="text-red-500 text-sm text-center">
+                    <div className= "error">
                         {error || getFirebaseErrorMessage(firebaseError)}
                     </div>
                 )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="email">
                 Email address
               </label>
               <input
@@ -83,13 +83,13 @@ return (
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 bg-gray-800 text-white appearance-none relative block w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="placeholder_text"
                 placeholder="Enter your email"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="password">
                 Password
               </label>
               <div className="mt-1 relative">
@@ -101,13 +101,13 @@ return (
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-gray-800 text-white appearance-none relative block w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="placeholder_text"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400"
+                  className="showhide_password"
                 >
                   {showPassword ? '👁️' : '👁️'}
                 </button>
@@ -118,21 +118,21 @@ return (
           <div className="flex items-center justify-between">
             <div className="text-sm">
               <Link
-                href="/forgot-password"
-                className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                href="/login/forgot-password"
+                className="linktext_format"
               >
                 Forgot your password?
               </Link>
             </div>
           </div>
-
+          
           <button
             type="submit"
             disabled={loading}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="button_format"
           >
             {loading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <div className="loading"></div>
             ) : (
               'Sign In'
             )}
@@ -142,7 +142,7 @@ return (
             <span className="text-gray-400">Don't have an account? </span>
             <Link
               href="/signup"
-              className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              className="linktext_format"
             >
               Sign up
             </Link>
