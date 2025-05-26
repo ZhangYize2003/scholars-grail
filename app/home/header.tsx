@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { FiMenu } from "react-icons/fi";
 import { useState } from 'react';
 import SideBar from "./sidebar";
+import { truncate } from 'fs/promises';
 
 const Header = () => {
-    const [isSideBarOpen, setSideBarOpen] = useState(false);
+    const [isSideBarOpen, setSideBarOpen] = useState(true);
     const toggleSideBar = () => {
         setSideBarOpen(!isSideBarOpen);
     };
