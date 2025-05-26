@@ -24,7 +24,7 @@ export default function SignInPage() {
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
-    const [signInWithGoogle, googleUser, googleLoading, googleError] = useSignInWithGoogle(auth);
+    const [signInWithGoogle, googleUser] = useSignInWithGoogle(auth);
     useEffect(() => {
       if (googleUser) {
         localStorage.setItem("isLoggedIn", "true");
@@ -56,6 +56,7 @@ export default function SignInPage() {
           setEmail('');
           router.push('/');
           localStorage.setItem("isLoggedIn", "true");
+          localStorage.setItem("uid", res.user.uid);
         }
     } catch (err) {
         setError('Invalid email or password');

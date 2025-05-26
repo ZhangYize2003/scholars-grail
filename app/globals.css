@@ -29,6 +29,9 @@ body {
   h1 {
     @apply mt-6 text-center text-3xl font-extrabold text-white;
   }
+  h2 {
+    @apply mt-6 text-center text-2xl font-bold;
+  }
   label {
     @apply block text-sm font-medium text-gray-300;
   }

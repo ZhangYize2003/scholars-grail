@@ -1,6 +1,8 @@
 import Link from 'next/link';
-import { FiHome, FiFileText, FiFolder, FiUsers, FiSettings, FiLogOut} from "react-icons/fi";
+import { FiHome, FiFileText, FiFolder, FiUsers, FiSettings, FiLogOut, FiUser} from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import { AiFillProfile } from 'react-icons/ai';
+import { ImProfile } from 'react-icons/im';
 
 interface SideBarProps {
     isOpen: boolean;
@@ -34,6 +36,11 @@ const SideBar = ({isOpen, onClose}: SideBarProps) => {
             </div>
 
                 <div className="mb-19 flex flex-col">
+                    <button>
+                    <Link href="/profile">
+                    <SideBarIcon icon = {<FiUser size="20" />} text = "Profile" />
+                    </Link>
+                    </button>
                     <button onClick={handleSignOut}>
                     <SideBarIcon icon = {<FiLogOut size="20" />} text = "Sign Out" />
                     </button>

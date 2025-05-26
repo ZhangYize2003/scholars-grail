@@ -1,10 +1,12 @@
 "use client"
 import { useState } from 'react';
 import { useCreateUserWithEmailAndPassword } from 'react-firebase-hooks/auth'
-import { auth } from '../firebase/config'
+import { auth, db } from '../firebase/config'
 import Link from 'next/link'
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 export default function SignUpPage() {
+  const [userName, setUserName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -17,7 +19,7 @@ export default function SignUpPage() {
     e.preventDefault();
     setError('');
 
-    if (!email || !password || !confirmPassword) {
+    if (!userName || !email || !password || !confirmPassword) {
       setError('All fields are required');
       return;
     }
@@ -29,17 +31,31 @@ export default function SignUpPage() {
 
     try {
       setIsLoading(true);
-      const res = await createUserWithEmailAndPassword(email,password);
+      const res = await createUserWithEmailAndPassword(email, password);
       console.log({res});
+      if (!res?.user?.uid) {
+        throw new Error('Signup failed. No user returned.');
+      }
+      else {
+        console.log('Firebase User Created:', res.user);
+      }
+      const uid = res.user.uid;
+      await setDoc(doc(db, 'users', uid), {
+        userName: userName,
+        email: email,
+        createdAt: serverTimestamp(),
+      });
+      setUserName('');
       setEmail('');
       setPassword('');
+      setConfirmPassword('');
     } catch (err) {
       setError('An error occurred during sign up');
+      console.error('Sign Up Error:', err);
     } finally {
       setIsLoading(false);
-    }
-  };
-
+    };
+  }
   return (
     <div className="background_colour">
       <div className="max-w-md w-full space-y-8">
@@ -51,6 +67,20 @@ export default function SignUpPage() {
             {error && (
               <div className="error">{error}</div>
             )}
+            <div>
+              <label htmlFor="username"> Username </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                required
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                className="placeholder_text"
+                placeholder="Enter your username"
+              />
+            </div>
 
             <div>
               <label htmlFor="email"> Email address </label>
@@ -118,6 +148,7 @@ export default function SignUpPage() {
           >
             {isLoading ? (
               <div className="loading"></div>
+              
             ) : (
               'Sign Up'
             )}
