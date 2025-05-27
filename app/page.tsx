@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "./home/header";
+import Main from "./home/main";
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from "../app/firebase/config";
 
@@ -33,9 +34,12 @@ export default function Home() {
   }, [router]);
 
   return (
-     <div className="min-h-screen">
+  <div className="min-h-screen">
       <Header />
-       <h2>Welcome{userName ? `, ${userName}!` : ""}</h2>
+        <h1 className="my-10 text-gray-200">
+          Welcome{userName ? `, ${userName}!` : ""}
+        </h1>
+      <Main />
     </div>
   );
 }
