@@ -1,9 +1,10 @@
 "use client"
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSignInWithEmailAndPassword, useSignInWithGoogle } from 'react-firebase-hooks/auth';
-import { auth } from '../firebase/config';
+import { auth, db } from '../firebase/config';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 function getFirebaseErrorMessage(error: unknown) {
   if (!error) return "";
@@ -19,16 +20,32 @@ function getFirebaseErrorMessage(error: unknown) {
 }
 
 export default function SignInPage() {
+    const [userName, setUserName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
     const [signInWithGoogle, googleUser] = useSignInWithGoogle(auth);
+    
     useEffect(() => {
       if (googleUser) {
-        localStorage.setItem("isLoggedIn", "true");
-        router.push("/");
+        localStorage.setItem("uid", googleUser.user.uid);
+        const uid = googleUser.user.uid;
+        const userRef = doc(db, 'users', uid);
+        const upsertUser = async () => {
+          const userSnap = await getDoc(userRef);
+          const existingData = userSnap.exists() ? userSnap.data() : {};
+          await setDoc(userRef, {
+            userName: googleUser.user.displayName,
+            email: googleUser.user.email,
+            createdAt: existingData.createdAt || serverTimestamp(),
+          });
+          localStorage.setItem("uid", uid);
+          localStorage.setItem("isLoggedIn", "true");
+          router.push("/");
+        };
+        upsertUser();
       }
     }, [googleUser, router]);
 

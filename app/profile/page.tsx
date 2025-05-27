@@ -58,15 +58,12 @@ export default function ProfilePage() {
           <h3 className="text-lg leading-6 font-medium text-white">
             User Profile
           </h3>
-          <p className="mt-1 max-w-2xl text-sm text-gray-300">
-            This is some information about the user.
-          </p>
         </div>
         <div className="border-t border-gray-700 px-4 py-5 sm:p-0">
           <dl className="sm:divide-y sm:divide-gray-700">
             <div className="py-3 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt className="text-sm font-medium text-gray-300">
-                Full name
+                UserName
               </dt>
               <dd className="mt-1 text-sm text-white sm:mt-0 sm:col-span-2">
                 {userName || "N/A"}
