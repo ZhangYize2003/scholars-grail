@@ -37,7 +37,7 @@ export default function Home() {
   return (
   <div className="min-h-screen">
       <Header />
-        <h1 className="my-10 text-gray-200">
+        <h1 className="pt-20 text-gray-200">
           Welcome{userName ? `, ${userName}!` : ""}
         </h1>
       <div>

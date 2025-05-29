@@ -11,7 +11,7 @@ const Header = () => {
     };
 
     return (
-        <header className="bg-gray-900 text-gray-300 p-3 shadow-md">
+        <header className="bg-gray-900 text-gray-300 p-3 shadow-md fixed top-0 left-0 right-0 z-50">
             <nav className="container mx-auto flex items-center justify-between">
                 <div className="flex items-center ml-1 gap-4">
                 <button onClick={toggleSideBar} 

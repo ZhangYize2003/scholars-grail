@@ -4,7 +4,7 @@ import { FiClock, FiBookOpen, FiFlag} from "react-icons/fi";
 const Main = () => {
     return (
         <main className="ml-90">
-            <div className="my-24 space-y-12">
+            <div className="my-12 space-y-12">
                 <div className="flex flex-col items-start gap-1">
                     <div className="flex justify-start gap-1 text-gray-200 text-sm">
                         <FiClock className=" w-3.5 h-3.5 my-0.5"/> 
