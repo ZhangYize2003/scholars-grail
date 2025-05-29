@@ -5,6 +5,7 @@ import Header from "./home/header";
 import Main from "./home/main";
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from "../app/firebase/config";
+import FileUploader from "./feature/fileUploader";
 
 export default function Home() {
   const router = useRouter();
@@ -39,6 +40,9 @@ export default function Home() {
         <h1 className="my-10 text-gray-200">
           Welcome{userName ? `, ${userName}!` : ""}
         </h1>
+      <div>
+        <FileUploader />
+      </div>
       <Main />
     </div>
   );
