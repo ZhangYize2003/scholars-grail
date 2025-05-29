@@ -27,7 +27,7 @@ const SideBar = ({isOpen, onClose}: SideBarProps) => {
                 <Link href="/" className="sidebar_button"> {/* Placeholder href */}
                 <SideBarIcon icon ={<FiFileText size = "20" />} text = "Mark Paper" />
                 </Link>
-                <Link href="/" className="sidebar_button"> {/* Placeholder href */}
+                <Link href="/repository" className="sidebar_button"> {/* Placeholder href */}
                 <SideBarIcon icon ={<FiFolder size = "20" />} text = "Repository" />
                 </Link>
                 <Link href="/" className="sidebar_button"> {/* Placeholder href */}

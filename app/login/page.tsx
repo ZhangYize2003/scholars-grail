@@ -42,6 +42,7 @@ export default function SignInPage() {
             createdAt: existingData.createdAt || serverTimestamp(),
           });
           localStorage.setItem("uid", uid);
+          localStorage.setItem("userName", googleUser.user.displayName || '');
           localStorage.setItem("isLoggedIn", "true");
           router.push("/");
         };
