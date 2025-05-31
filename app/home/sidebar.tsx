@@ -17,7 +17,7 @@ const SideBar = ({isOpen, onClose}: SideBarProps) => {
         router.replace("/login");
     };
     return (
-        <div className={`fixed top-15 left-0 h-screen w-50 bg-gray-800 text-white shadow-lg transform 
+        <div className={`fixed top-15 left-0 h-screen w-50 bg-gray-800 shadow-lg transform 
                         transition-transform duration-300 z-50 flex flex-col justify-between
                         ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="pt-3">
