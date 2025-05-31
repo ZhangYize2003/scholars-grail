@@ -5,7 +5,7 @@ import Header from "./home/header";
 import Main from "./home/main";
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from "../app/firebase/config";
-import FileUploader from "./feature/fileUploader";
+import S3UploadForm from './components/S3UploadForm';
 
 export default function Home() {
   const router = useRouter();
@@ -41,7 +41,7 @@ export default function Home() {
           Welcome{userName ? `, ${userName}!` : ""}
         </h1>
       <div>
-        <FileUploader />
+        <S3UploadForm />
       </div>
       <Main />
     </div>
