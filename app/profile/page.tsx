@@ -51,7 +51,7 @@ export default function ProfilePage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex items-center-safe justify-center">
       <Header />
       <div className="bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-700 mt-8 max-w-2xl mx-auto">
         <div className="px-4 py-5 sm:px-6">
