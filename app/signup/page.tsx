@@ -14,10 +14,12 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [createUserWithEmailAndPassword] = useCreateUserWithEmailAndPassword(auth);
+  const [accountCreated, setAccountCreated] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setAccountCreated(false);
 
     if (!userName || !email || !password || !confirmPassword) {
       setError('All fields are required');
@@ -49,6 +51,7 @@ export default function SignUpPage() {
       setEmail('');
       setPassword('');
       setConfirmPassword('');
+      setAccountCreated(true);
     } catch (err) {
       setError('An error occurred during sign up');
       console.error('Sign Up Error:', err);
@@ -62,6 +65,11 @@ export default function SignUpPage() {
         <div>
           <h1> Create an Account </h1>
         </div>
+        {accountCreated && (
+          <div className="text-green-500 text-center font-semibold">
+            Account created successfully!
+          </div>
+        )}
         <form className="mt-8 space-y-6" onSubmit={handleSignUp}>
           <div className="rounded-md shadow-sm space-y-4">
             {error && (
