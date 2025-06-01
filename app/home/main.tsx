@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { FiClock, FiBookOpen, FiFlag} from "react-icons/fi";
 
 const Main = () => {

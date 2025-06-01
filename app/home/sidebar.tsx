@@ -1,15 +1,13 @@
 import Link from 'next/link';
 import { FiHome, FiFileText, FiFolder, FiUsers, FiSettings, FiLogOut, FiUser} from "react-icons/fi";
 import { useRouter } from "next/navigation";
-import { AiFillProfile } from 'react-icons/ai';
-import { ImProfile } from 'react-icons/im';
 
 interface SideBarProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-const SideBar = ({isOpen, onClose}: SideBarProps) => {
+const SideBar = ({isOpen}: SideBarProps) => {
     const router = useRouter();
 
     const handleSignOut = () => {

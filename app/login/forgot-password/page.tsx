@@ -2,13 +2,14 @@
 import { useState } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../../firebase/config";
+import { FirebaseError } from "firebase/app";
 import Link from "next/link";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [loading] = useState(false);
+    const [loading, setLoading] = useState(false);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,13 +25,15 @@ export default function ForgotPasswordPage() {
       await sendPasswordResetEmail(auth, email);
       setMessage("Password reset email sent! Please check your inbox.");
       setEmail("");
-    } catch (err: any) {
-      if (err.code === "auth/user-not-found") {
-        setError("No account found with this email.");
-      } else if (err.code === "auth/invalid-email") {
-        setError("Invalid email address.");
-      } else {
-        setError("Failed to send reset email. Please try again.");
+    } catch (err) {
+      if (err instanceof FirebaseError) {
+        if (err.code === "auth/user-not-found") {
+          setError("No account found with this email.");
+        } else if (err.code === "auth/invalid-email") {
+          setError("Invalid email address.");
+        } else {
+          setError("Failed to send reset email. Please try again.");
+        }
       }
     }
   };

@@ -53,7 +53,7 @@ const S3UploadForm = () => {
 
     return(
         <div className="flex justify-center my-2">
-            <p> Let's start by uploading your papers</p>
+            <p> Let&apos;s start by uploading your papers</p>
             <button onClick={() => setIsModalOpen(true)} 
                     className="px-1 py-1 mx-2 bg-blue-900 text-xs text-gray-200 rounded hover:bg-blue-700 transition">
                 Upload Papers
