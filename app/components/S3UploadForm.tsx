@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { use, useState } from 'react';
 
 const S3UploadForm = () => {
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [success, setSuccess] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -36,6 +37,7 @@ const S3UploadForm = () => {
             }
             const data = await response.json();
             console.log("File uploaded successfully:", data);
+            setSuccess(true);
             setFile(null);
             setUploading(false);
             setIsModalOpen(false);
@@ -52,12 +54,17 @@ const S3UploadForm = () => {
     }
 
     return(
-        <div className="flex justify-center my-2">
-            <p> Let&apos;s start by uploading your papers</p>
-            <button onClick={() => setIsModalOpen(true)} 
-                    className="px-1 py-1 mx-2 bg-blue-900 text-xs text-gray-200 rounded hover:bg-blue-700 transition">
-                Upload Papers
-            </button>
+        <div className="flex flex-col items-center my-2">
+            <div className="flex items-center gap-4">
+                <p> Let&apos;s start by uploading your papers</p>
+                <button onClick={() => setIsModalOpen(true)} 
+                        className="flex px-1 py-1 mx-2 bg-blue-900 text-xs text-gray-200 rounded hover:bg-blue-700 transition">
+                    Upload Papers
+                </button>
+            </div>
+            {success && (
+                <p className="text-green-500 font-semibold ">File uploaded successfully!</p>
+            )}
             {isModalOpen && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
                     <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-md text-gray-200">
