@@ -56,7 +56,7 @@ export async function GET(request: Request): Promise<NextResponse> {
                         ResponseContentDisposition: 'inline',
                         ResponseContentType: contentType
                     });
-                    const signedUrl = await getSignedUrl(s3Client, getCommand, { expiresIn: 300 });
+                    const signedUrl = await getSignedUrl(s3Client, getCommand, { expiresIn: 3600 });
                     return {
                         key: item.Key,
                         lastModified: item.LastModified,
