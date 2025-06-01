@@ -35,7 +35,7 @@ export default function Home() {
   }, [router]);
 
   return (
-  <div className="min-h-screen">
+  <div className="min-h-screen bg-gray-950">
       <Header />
         <h1 className="pt-20 text-gray-200">
           Welcome{userName ? `, ${userName}!` : ""}
