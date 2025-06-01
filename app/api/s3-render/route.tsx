@@ -22,9 +22,9 @@ const getContentType = (key: string) => {
   return "application/octet-stream";
 };
 
-type ResponseData = {
-    url: string;
-}
+// type ResponseData = {
+//     url: string;
+// }
 
 export async function GET(request: Request): Promise<NextResponse> {
     try {
@@ -47,7 +47,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         }));
         const files = await Promise.all(
             (data.Contents || [])
-                .filter(item => !item.Key!.endsWith('/')) // Filter out folder markers
+                .filter(item => !item.Key!.endsWith('/'))
                 .map(async (item) => {
                     const contentType = getContentType(item.Key!);
                     const getCommand = new GetObjectCommand({

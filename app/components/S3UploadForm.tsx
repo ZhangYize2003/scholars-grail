@@ -1,4 +1,4 @@
-import { use, useState } from 'react';
+import { useState } from 'react';
 
 const S3UploadForm = () => {
     const [file, setFile] = useState<File | null>(null);
