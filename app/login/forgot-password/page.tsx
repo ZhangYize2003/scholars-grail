@@ -35,6 +35,8 @@ export default function ForgotPasswordPage() {
           setError("Failed to send reset email. Please try again.");
         }
       }
+    } finally {
+      setLoading(false);
     }
   };
 

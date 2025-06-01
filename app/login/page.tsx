@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSignInWithEmailAndPassword, useSignInWithGoogle } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebase/config';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,6 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 function getFirebaseErrorMessage(error: unknown) {
   if (!error) return "";
-  // react-firebase-hooks returns error as FirebaseError
   const code = (error as { code?: string }).code;
   console.log(code)
   switch (code) {
@@ -20,7 +19,6 @@ function getFirebaseErrorMessage(error: unknown) {
 }
 
 export default function SignInPage() {
-    const [userName, setUserName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -52,7 +50,7 @@ export default function SignInPage() {
 
     const [
         signInWithEmailAndPassword,
-        user,
+        ,
         loading,
         firebaseError,
     ] = useSignInWithEmailAndPassword(auth);
@@ -77,6 +75,7 @@ export default function SignInPage() {
           localStorage.setItem("uid", res.user.uid);
         }
     } catch (err) {
+        console.error("Sign-in error:", err);
         setError('Invalid email or password');
     }
 };
@@ -162,7 +161,7 @@ return (
           </button>
 
           <div className="text-center text-sm linktext_format">
-            <span className="text-gray-400">Don't have an account? </span>
+            <span className="text-gray-400">Don&apos;t have an account? </span>
             <Link href="/signup">
               Sign up
             </Link>
