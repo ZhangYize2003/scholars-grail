@@ -5,6 +5,9 @@ import { auth, db } from '../firebase/config';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { FiEye, FiEyeOff} from "react-icons/fi";
+import Image from 'next/image';
+import logo from "../images/sg-logo.png";
 
 function getFirebaseErrorMessage(error: unknown) {
   if (!error) return "";
@@ -12,9 +15,9 @@ function getFirebaseErrorMessage(error: unknown) {
   console.log(code)
   switch (code) {
     case "auth/invalid-credential":
-      return "Invalid Email / Password.";
+      return "Error: Invalid Username/Email or Password";
     default:
-      return (error as Error)?.message || "An unknown error occurred.";
+      return (error as Error)?.message || "An unknown error occurred";
   }
 }
 
@@ -56,49 +59,51 @@ export default function SignInPage() {
     ] = useSignInWithEmailAndPassword(auth);
     
     const handleSignIn = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
+      e.preventDefault();
+      setError('');
 
-    if (!email || !password) {
-        setError('All fields are required');
-        return;
-    }
-    
-    try {
-        const res = await signInWithEmailAndPassword(email, password);
-        console.log({res});
-        setPassword('');
-        if (res){
-          setEmail('');
-          router.push('/');
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("uid", res.user.uid);
-        }
-    } catch (err) {
-        console.error("Sign-in error:", err);
-        setError('Invalid email or password');
-    }
-};
+      if (!email || !password) {
+          setError('All fields are required');
+          return;
+      }
+      
+      try {
+          const res = await signInWithEmailAndPassword(email, password);
+          console.log({res});
+          setPassword('');
+          if (res){
+            setEmail('');
+            router.push('/');
+            localStorage.setItem("isLoggedIn", "true");
+            localStorage.setItem("uid", res.user.uid);
+          }
+      } catch (err) {
+          console.error("Sign-in error:", err);
+          setError('Invalid email or password');
+      }
+    };
 
-return (
-    <div className="background_colour">
-        <div className="max-w-md w-full space-y-8">
-            <div>
-                <h1>
-                Sign In to Your Account
-                </h1>
-            </div>
+  return (
+    <div className="signin_signout_bg">
+      <div className="flex items-center justify-center">
+        <Image src={logo} width={100} height={100} alt="Logo"/>
+        <h1 className="text-5xl font-bold">
+            Scholar&apos;s Grail
+        </h1>        
+      </div>
+      <div className="flex justify-center my-4">
+        <hr className="border-t border-stroke w-1/2"></hr>
+      </div>
+      <div className="flex flex-col items-center w-full my-5">
+        <div className="w-md">
+          <h1>
+            Sign In to Your Account 
+          </h1>
         <form className="mt-8 space-y-6" onSubmit={handleSignIn}>
-            <div className="rounded-md shadow-sm space-y-4">
-                {(error || firebaseError) && (
-                    <div className= "error">
-                        {error || getFirebaseErrorMessage(firebaseError)}
-                    </div>
-                )}
-
+          <div className="rounded-md shadow-sm space-y-4">
             <div>
               <label htmlFor="email">
-                Email address
+                Username / Email
               </label>
               <input
                 id="email"
@@ -109,7 +114,7 @@ return (
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="placeholder_text"
-                placeholder="Enter your email"
+                placeholder="Enter your username or email"
               />
             </div>
 
@@ -134,19 +139,25 @@ return (
                   onClick={() => setShowPassword(!showPassword)}
                   className="showhide_password"
                 >
-                  {showPassword ? '👁️' : '👁️'}
+                  {showPassword ? <FiEye/> : <FiEyeOff/>}
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between -mt-4">
             <div className="text-sm linktext_format">
               <Link href="/login/forgot-password">
                 Forgot your password?
               </Link>
             </div>
           </div>
+          
+          {(error || firebaseError) && (
+              <div className= "error">
+                    {error || getFirebaseErrorMessage(firebaseError)}
+              </div>
+            )}
           
           <button
             type="submit"
@@ -161,19 +172,19 @@ return (
           </button>
 
           <div className="text-center text-sm linktext_format">
-            <span className="text-gray-400">Don&apos;t have an account? </span>
+            <span className="text-main font-normal">Don&apos;t have an account? </span>
             <Link href="/signup">
               Sign up
             </Link>
           </div>
-          <div className="flex w-full items-center gap-2 py-6 text-sm text-slate-200">
-            <div className="h-px w-full bg-slate-200"></div>
+          <div className="flex items-center gap-2 text-sm text-stroke">
+            <div className="h-px w-full bg-stroke"></div>
             OR
-            <div className="h-px w-full bg-slate-200"></div>
+            <div className="h-px w-full bg-stroke"></div>
           </div>
           <button 
             type="button" 
-            className="flex items-center gap-2 button_format bg-white hover:bg-gray-300 text-black"
+            className="flex items-center gap-2 button_format"
             onClick={() => signInWithGoogle()}
             >
             <img
@@ -184,6 +195,7 @@ return (
             Continue with Google
           </button>
         </form>
+        </div>
       </div>
     </div>
   );

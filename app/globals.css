@@ -1,22 +1,44 @@
 @import "tailwindcss";
 
+/* Placeholder values for light mode*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #171717;
+  --primary: #202020;
+  --secondary: #373737;
+  --tertiary: #454545;
+  --accent: #1e1aac;
+  --stroke: #4e4e4e;
+  --text-main: #edf2f7;
+  --text-error: #FF484B;
+  --text-success: #48FF69;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --background: #171717;
+  --primary: #202020;
+  --secondary: #373737;
+  --tertiary: #454545;
+  --accent: #1e1aac;
+  --stroke: #4e4e4e;
+  --text-main: #edf2f7;
+  --text-error: #FF484B;
+  --text-success: #48FF69;
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-tertiary: var(--tertiary);
+  --color-accent: var(--accent);
+  --color-stroke: var(--stroke);
+  --color-main: var(--text-main);
+  --color-error: var(--text-error);
+  --color-success: var(--text-success);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
@@ -27,36 +49,39 @@ body {
 
 @layer base {
   h1 {
-    @apply mt-6 text-center text-3xl font-extrabold text-white;
+    @apply mt-6 text-center text-2xl font-semibold text-main;
   }
   label {
-    @apply block text-sm font-medium text-gray-300;
+    @apply block text-sm font-medium text-main;
   }
 }
 
-@layer components {
-  .background_colour{
-    @apply min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8;
+@layer authentication {
+  .signin_signout_bg{
+    @apply bg-background text-main my-12;
   }
   .error {
-    @apply text-red-500 text-sm text-center;
+    @apply text-error text-sm text-center;
   }
   .placeholder_text {
-    @apply mt-1 bg-gray-800 text-white appearance-none relative block w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+    @apply mt-1 bg-secondary text-main appearance-none relative block w-full px-3 py-2 border border-secondary rounded-md focus:outline-none focus:ring-2 focus:ring-stroke focus:border-transparent;
   }
   .linktext_format{
-    @apply font-medium text-blue-400 hover:text-blue-300 transition-colors;
+    @apply font-semibold text-accent hover:text-blue-700 transition-colors;
   }
-  .loading {
-    @apply animate-spin rounded-full h-5 w-5 border-b-2 border-white;
+  .loading {  
+    @apply animate-spin rounded-full h-5 w-5 border-b-2 border-stroke;
   }
   .button_format {
-    @apply flex justify-center items-center w-full px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mx-auto cursor-pointer;
+    @apply flex justify-center items-center w-full px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-main bg-accent hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent mx-auto cursor-pointer;
   }
-  .showhide_password {
-    @apply absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400;
-  }
-  .sidebar_button {
-    @apply w-full hover:bg-gray-900 transition-colors text-left;
+  .showhide_password {  
+    @apply absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-main;
   }
 } 
+
+@layer sidebar {
+    .sidebar_button {
+    @apply w-full hover:bg-primary transition-colors text-left;
+  }
+}
