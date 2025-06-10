@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { List } from "lucide-react";
 
 const region = process.env.NEXT_PUBLIC_AWS_S3_REGION!;
 const accessKeyId = process.env.NEXT_PUBLIC_AWS_S3_ACCESS_KEY_ID!;
@@ -21,11 +22,24 @@ export async function DELETE(request: Request): Promise<NextResponse> {
         if (!key) {
             return NextResponse.json({ error: "Key parameter is required" }, { status: 400 });
         }
+        const listCommand = new ListObjectsV2Command({
+            Bucket: bucketName,
+            Prefix: key
+        });
+        const listResponse = await s3Client.send(listCommand);
+        if (!listResponse.Contents || listResponse.Contents.length === 0) {
+            return NextResponse.json({ error: "No files found with the specified key" }, { status: 404 });
+        }
 
         console.log("Deleting file with key:", key);
-        const deleteCommand = new DeleteObjectCommand({
+        const deleteCommand = new DeleteObjectsCommand({
             Bucket: bucketName,
-            Key: key
+            Delete : {
+                Objects: listResponse.Contents.map(item => ({
+                    Key: item.Key!
+                })),
+                Quiet: false
+            }
         });
 
         await s3Client.send(deleteCommand);

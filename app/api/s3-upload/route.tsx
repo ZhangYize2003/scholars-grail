@@ -15,10 +15,6 @@ const s3Client = new S3Client({
     }
 });
 
-// type ResponseData = {
-//     url: string;
-// }
-
 async function uploadFileToS3(buffer: Buffer<ArrayBuffer>, name: string, uid: string) {
     const fileBuffer = buffer;
     console.log("Uploading file to S3:", name);

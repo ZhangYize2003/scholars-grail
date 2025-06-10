@@ -1,6 +1,7 @@
 "use client";
 import { Folders, Trash2, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
+import CopySelectedFolder from "./MoveSelectedFolder";
 
 type S3File = {
   key: string;
@@ -63,6 +64,7 @@ export default function S3RenderFile() {
     });
     setFolders((prev) => prev.filter((f) => f.prefix !== key));
   };
+
   const subFolders = folders.filter((f) => {
     const rest = f.prefix.slice(currentPrefix.length);
     return (
@@ -112,16 +114,23 @@ export default function S3RenderFile() {
               </span>
               </div>
                 {layer === 1 && (
-                <button
-                  className="ml-2 text-red-400 hover:text-red-600"
-                  title="Delete folder"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteFolder(folder.prefix);
-                  }}
-                >
-                    <Trash2 className="w-5 h-5" />
-                </button>
+                  <div className="flex items-center gap-2">
+                    <CopySelectedFolder
+                      rootPrefix={rootPrefix}
+                      folderPrefix={folder.prefix}
+                    />
+                    <button
+                      className="text-red-400 hover:text-red-600"
+                      title="Delete folder"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log(folder.prefix)
+                        handleDeleteFolder(folder.prefix);
+                      }}
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
               )}
             </li>
           ))}
