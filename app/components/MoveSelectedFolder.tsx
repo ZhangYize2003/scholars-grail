@@ -1,5 +1,4 @@
-import { Folders, X, Move } from "lucide-react";
-import { sourceMapsEnabled } from "process";
+import { Folders, X, MoveUpRight } from "lucide-react";
 import { useState, useEffect } from "react";
 
 type S3Folder = {
@@ -95,7 +94,7 @@ export default function MoveSelectedFolder({ rootPrefix, folderPrefix }: MoveSel
           setIsCopyModalOpen(true);
         }}
       >
-        <Move className="w-5 h-5" />
+        <MoveUpRight />
       </button>
       {isCopyModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
