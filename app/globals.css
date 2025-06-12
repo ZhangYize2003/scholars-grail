@@ -82,6 +82,12 @@ body {
 
 @layer sidebar {
     .sidebar_button {
-    @apply w-full hover:bg-primary transition-colors text-left;
+    @apply flex items-center p-4 mx-2 gap-4 hover:bg-tertiary cursor-pointer rounded-md
+  }
+}
+
+@layer Header {
+    .profile_menu {
+    @apply flex items-center p-3 gap-2 hover:bg-tertiary cursor-pointer
   }
 }
