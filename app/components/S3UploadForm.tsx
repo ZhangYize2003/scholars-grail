@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { FiX } from "react-icons/fi";
 
 const S3UploadForm = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -55,24 +56,23 @@ const S3UploadForm = () => {
     }
 
     return(
-        <div className="flex flex-col items-center my-2">
-            <div className="flex items-center gap-4">
-                <p> Let&apos;s start by uploading your papers</p>
-                <button onClick={() => setIsModalOpen(true)} 
-                        className="flex px-1 py-1 mx-2 bg-blue-900 text-xs text-gray-200 rounded hover:bg-blue-700 transition">
-                    Upload Papers
-                </button>
-            </div>
+        <div className="flex flex-col items-center space-y-2 text-main">
+            <div className={`${isModalOpen ? 'fixed inset-0 backdrop-blur-sm z-40' : ''}`}/>
+            <button onClick={() => setIsModalOpen(true)} 
+                    className="flex p-2 mx-2 bg-accent text-xl rounded-md hover:bg-accent/75 transition cursor-pointer">
+                start revision
+            </button>
+            <hr className="border-t border-stroke w-1/2 my-2"></hr>
             {success && (
-                <p className="text-green-500 font-semibold ">File uploaded successfully!</p>
+                <p className="text-success font-semibold ">File uploaded successfully!</p>
             )}
             {isModalOpen && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-md text-gray-200">
+                    <div className="bg-secondary rounded-md shadow-xl w-full max-w-3xl">
                         <div className="flex justify-between items-center p-4 border-b">
                             <p className="text-xl font-semibold">Upload Papers</p>
-                            <button onClick={resetModal} className="text-gray-500 hover:text-gray-700 text-2xl">
-                                &times;
+                            <button onClick={resetModal} className="hover:bg-tertiary rounded-full p-2 transition-all cursor-pointer">
+                                <FiX size={20}/>
                             </button>
                         </div>
                         
@@ -105,15 +105,15 @@ const S3UploadForm = () => {
                             )}
                             
                             <div className="flex justify-end space-x-3">
-                                <button type="button" onClick={resetModal} className="px-4 py-2 border rounded 
-                                        hover:bg-gray-900" disabled={uploading}>                                   
+                                <button type="button" onClick={resetModal} className="px-4 py-2 rounded-md 
+                                        bg-tertiary hover:bg-tertiary/75 cursor-pointer" disabled={uploading}>                                   
                                     Cancel
                                 </button>
                                 <button type="submit" className= {
-                                    `px-4 py-2 rounded ${
+                                    `px-4 py-2 rounded-md ${
                                         !file || uploading 
                                             ? "bg-gray-500 cursor-not-allowed" 
-                                            : "bg-blue-900 hover:bg-blue-700"
+                                            : "bg-accent hover:bg-accent/75 cursor-pointer"
                                     }`}
                                     disabled={!file || uploading}>
                                     {uploading ? "Uploading..." : "Upload"}
@@ -126,5 +126,6 @@ const S3UploadForm = () => {
         </div>
     )
 }
+
 
 export default S3UploadForm;

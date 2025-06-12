@@ -36,14 +36,14 @@ export default function Home() {
 
   return (
   <div className="min-h-screen bg-background">
-      <Header />
-        <h1 className="pt-20 text-main">
+      <Header/>
+        <h1 className="pt-20 text-3xl">
           Welcome{userName ? `, ${userName}!` : ""}
         </h1>
       <div>
-        <S3UploadForm />
+        <S3UploadForm/>
       </div>
-      <Main />
+      <Main/>
     </div>
   );
 }
