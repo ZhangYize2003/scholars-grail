@@ -67,7 +67,7 @@ body {
     @apply mt-1 bg-secondary text-main appearance-none relative block w-full px-3 py-2 border border-secondary rounded-md focus:outline-none focus:ring-2 focus:ring-stroke focus:border-transparent;
   }
   .linktext_format{
-    @apply font-semibold text-accent hover:text-blue-700 transition-colors;
+    @apply font-normal text-accent hover:text-blue-700 transition-colors;
   }
   .loading {  
     @apply animate-spin rounded-full h-5 w-5 border-b-2 border-stroke;
@@ -88,6 +88,6 @@ body {
 
 @layer Header {
     .profile_menu {
-    @apply flex items-center p-3 gap-2 hover:bg-tertiary cursor-pointer
+    @apply flex items-center p-4 mx-2 gap-4 hover:bg-tertiary cursor-pointer rounded-md
   }
 }

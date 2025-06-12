@@ -172,7 +172,7 @@ export default function SignInPage() {
           </button>
 
           <div className="text-center text-sm linktext_format">
-            <span className="text-main font-normal">Don&apos;t have an account? </span>
+            <span className="text-main">Don&apos;t have an account? </span>
             <Link href="/signup">
               Sign up
             </Link>
