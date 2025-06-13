@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { FiX } from "react-icons/fi";
 
 const S3UploadForm = () => {
@@ -7,6 +7,9 @@ const S3UploadForm = () => {
     const [uploading, setUploading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [isFromRepository, setFromRepository] = useState(true);
+    const [isToNewFolder, setToNewFolder] = useState(true);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -15,6 +18,7 @@ const S3UploadForm = () => {
             setFile(null);
         }
     };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!file) {
@@ -40,9 +44,7 @@ const S3UploadForm = () => {
             const data = await response.json();
             console.log("File uploaded successfully:", data);
             setSuccess(true);
-            setFile(null);
-            setUploading(false);
-            setIsModalOpen(false);
+            resetModal();
         } catch (error) {
             console.error("Error uploading file:", error);
             setUploading(false);
@@ -53,7 +55,20 @@ const S3UploadForm = () => {
         setFile(null);
         setUploading(false);
         setIsModalOpen(false);
+        setFromRepository(true);
     }
+    
+    const handleFileOrigin = () => {
+        setFromRepository(!isFromRepository);
+    };
+
+    const handleIsNewFolder = () => {
+        setToNewFolder(!isToNewFolder);
+    };
+
+    const handleButtonClick = () => {
+    fileInputRef.current?.click();
+    };
 
     return(
         <div className="flex flex-col items-center space-y-2 text-main">
@@ -63,33 +78,90 @@ const S3UploadForm = () => {
                 start revision
             </button>
             <hr className="border-t border-stroke w-1/2 my-2"></hr>
+            
             {success && (
                 <p className="text-success font-semibold ">File uploaded successfully!</p>
             )}
+
             {isModalOpen && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
                     <div className="bg-secondary rounded-md shadow-xl w-full max-w-3xl">
-                        <div className="flex justify-between items-center p-4 border-b">
-                            <p className="text-xl font-semibold">Upload Papers</p>
+                        <div className="flex justify-between items-center px-10 py-4 border-b bg-primary/50 border-stroke">
+                            <p className="text-xl font-semibold">Start revision</p>
                             <button onClick={resetModal} className="hover:bg-tertiary rounded-full p-2 transition-all cursor-pointer">
                                 <FiX size={20}/>
                             </button>
                         </div>
                         
-                        <form onSubmit={handleSubmit} className="p-4">
-                            <div className="mb-4">
-                                <label className="block mb-2">
-                                    Select a file to upload:
-                                </label>
-                                <input type="file" onChange={handleFileChange}
-                                    className="w-full p-2 border rounded" disabled={uploading}/>
+                        <form onSubmit={handleSubmit} className="px-10 py-4">
+                            <div className="flex flex-col mb-4 space-y-2">
+                                <h2 className="block mb-2 text-md font-semibold">
+                                    Select the question paper or answer key:
+                                </h2>
+
+                                <div className="flex gap-2 ml-4">
+                                    <input type="radio" id="repositoryOption" name="FileOrigin" value="Repository"
+                                            onChange={handleFileOrigin} className="cursor-pointer" defaultChecked/>
+                                    <label htmlFor="repositoryOption" className="cursor-pointer">
+                                        Select from repository
+                                    </label>
+                                </div>
+
+                                <div className="flex gap-2 ml-4">                                    
+                                    <input type="radio" id="deviceOption" name="FileOrigin" value="Device"
+                                            onChange={handleFileOrigin} className="cursor-pointer"/>
+                                    <label htmlFor="deviceOption" className="cursor-pointer">
+                                        Upload from device
+                                    </label>
+                                </div>                                
                             </div>
-                            
-                            {file && (
-                                <div className="mb-4 p-3 bg-gray-500 rounded border">
-                                    <p className="truncate"> Name: {file.name}</p>
-                                    <p> Size: {(file.size / 1024).toFixed(2)} KB</p>
-                                    <p> Type: {file.type || "Unknown"}</p>
+
+                            {isFromRepository && (
+                                <div className="flex ml-9 gap-2 text-main text-sm">
+                                    <label htmlFor="repositoryFiles">File:</label>
+                                    <select id="repositoryFiles" name="repositoryFiles"
+                                            className="w-20 bg-tertiary rounded-md cursor-pointer">
+                                                <option value="Love">Love</option>
+                                    </select>
+                                </div>
+                            )}
+
+                            {!isFromRepository && (
+                                <div>
+                                    <div className="flex ml-9 gap-2 text-main text-sm">
+                                        <button type="button" onClick={handleButtonClick} disabled={uploading}
+                                                className="w-20 bg-tertiary rounded-md cursor-pointer hover:bg-tertiary/75">
+                                            choose file
+                                        </button>
+                                        <input type="file" ref={fileInputRef} onChange={handleFileChange}
+                                            className="hidden" disabled={uploading}/>
+                                        {file && (
+                                            <p className="truncate"> File name: {file.name}</p>
+                                        )}      
+                                    </div>
+                                    
+                                    <br></br>
+                                    <div className="flex flex-col mb-4 space-y-2">
+                                        <h2 className="block mb-2 text-md font-semibold">
+                                            Upload to:
+                                        </h2>
+
+                                        <div className="flex gap-2 ml-4">
+                                            <input type="radio" id="newFolderOption" name="isNewFolder" value="newFolder"
+                                                    onChange={handleIsNewFolder} className="cursor-pointer" defaultChecked/>
+                                            <label htmlFor="newFolderOption" className="cursor-pointer">
+                                                New folder:
+                                            </label>
+                                        </div>
+
+                                        <div className="flex gap-2 ml-4">                                    
+                                            <input type="radio" id="currentFolderOption" name="isNewFolder" value="currentFolder"
+                                                    onChange={handleIsNewFolder} className="cursor-pointer"/>
+                                            <label htmlFor="currentFolderOption" className="cursor-pointer">
+                                                Current folder:
+                                            </label>
+                                        </div>                                
+                                    </div>
                                 </div>
                             )}
                             
@@ -103,7 +175,8 @@ const S3UploadForm = () => {
                                     </div>
                                 </div>
                             )}
-                            
+
+                            <br></br>
                             <div className="flex justify-end space-x-3">
                                 <button type="button" onClick={resetModal} className="px-4 py-2 rounded-md 
                                         bg-tertiary hover:bg-tertiary/75 cursor-pointer" disabled={uploading}>                                   
@@ -112,7 +185,7 @@ const S3UploadForm = () => {
                                 <button type="submit" className= {
                                     `px-4 py-2 rounded-md ${
                                         !file || uploading 
-                                            ? "bg-gray-500 cursor-not-allowed" 
+                                            ? "bg-accent cursor-not-allowed"    
                                             : "bg-accent hover:bg-accent/75 cursor-pointer"
                                     }`}
                                     disabled={!file || uploading}>
@@ -126,6 +199,5 @@ const S3UploadForm = () => {
         </div>
     )
 }
-
 
 export default S3UploadForm;

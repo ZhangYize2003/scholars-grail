@@ -12,6 +12,7 @@ const Main = () => {
 
                 </div>
             </div>
+            
             <div className="flex flex-col items-start gap-1">
                 <div className="flex justify-start gap-1">  
                     <FiBookOpen className="w-3.5 h-3.5 my-0.5"/>
@@ -21,6 +22,7 @@ const Main = () => {
 
                 </div>
             </div>
+
             <div className="flex flex-col items-start gap-1">
                 <div className="flex justify-start gap-1">
                     <FiFlag className="w-3.5 h-3.5 my-0.5"/>
