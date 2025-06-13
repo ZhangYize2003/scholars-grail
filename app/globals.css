@@ -88,6 +88,6 @@ body {
 
 @layer Header {
     .profile_menu {
-    @apply flex items-center p-4 mx-2 gap-4 hover:bg-tertiary cursor-pointer rounded-md
+    @apply flex items-center p-3 gap-2 hover:bg-tertiary cursor-pointer
   }
 }
