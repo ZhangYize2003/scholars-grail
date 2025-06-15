@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { FiX } from "react-icons/fi";
 
+
 const S3UploadForm = () => {
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -10,33 +11,50 @@ const S3UploadForm = () => {
     const [isFromRepository, setFromRepository] = useState(true);
     const [isToNewFolder, setToNewFolder] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [subjects, setSubjects] = useState<string[]>([]);
-    const [selectedSubject, setSelectedSubject] = useState("");
-    const [isNewSubject, setIsNewSubject] = useState(false);
-    const [newSubjectName, setNewSubjectName] = useState("");
 
-    useEffect(() => {
-        const fetchSubjects = async () => {
+    const [folderList, setFolderList] = useState<{ prefix: string }[]>([]);
+    const [selectedFolder, setSelectedFolder] = useState<string>("");
+    const [subjectFiles, setSubjectFiles] = useState<{ key: string }[]>([]);
+    const [newFolderName, setNewFolderName] = useState("");
+    const [selectedCurrentFolder, setSelectedCurrentFolder] = useState("");
+
+    const handleSubjectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const folderPrefix = e.target.value;
+        setSelectedFolder(folderPrefix);
+
         const uid = localStorage.getItem("uid");
         if (!uid) return;
-        const res = await fetch(`/api/s3-render?uid=${uid}`, {
-            method: "GET",
-        });
-        if (res.ok) {
-            const data = await res.json();
-            setSubjects(
-            (data.folders || []).map((f: any) => {
-                const parts = f.prefix.split("/").filter(Boolean);
-                return parts.pop();
-            })
-            );            
-            console.log(data);
-        }
-        };
-        if (isModalOpen) fetchSubjects();
-    }, [isModalOpen]);
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const response = await fetch(`/api/s3-render?uid=${uid}&prefix=${folderPrefix}`);
+        if (!response.ok) {
+            console.error("Failed to fetch files for subject folder");
+            return;
+        }
+
+        const data = await response.json();
+        setSubjectFiles(data.files || []);
+    };
+
+    useEffect(() => {
+        const fetchRepository = async () => {
+            const uid = localStorage.getItem("uid");
+            if (!uid) {
+                return;
+            }
+
+            const response = await fetch(`/api/s3-render?uid=${uid}`);
+            if (!response.ok) {
+                console.error("Failed to fetch repository from S3");
+                return;
+            }
+
+            const data = await response.json();
+            setFolderList(data.folders || []);
+        };
+        fetchRepository();
+    }, []);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const selectedFile = e.target.files[0];
             if (selectedFile.type === "application/pdf") {
@@ -78,13 +96,17 @@ const S3UploadForm = () => {
         if (uid) {
             formData.append("uid", uid);
         }
-        if (selectedSubject){
-            console.log(selectedSubject);
-            formData.append("subject", selectedSubject);
-        } else {
-            console.log(newSubjectName);
-            formData.append("subject", newSubjectName);
+        
+        if (!isFromRepository) {
+            if (isToNewFolder && newFolderName.trim() !== "") {
+                formData.append("subject", newFolderName.trim());
+            } else if (!isToNewFolder) {
+                const parts = selectedCurrentFolder.split('/').filter(Boolean);
+                const subject = parts[parts.length - 1];
+                formData.append("subject", subject);
+            }
         }
+
         try {
             const response = await fetch("/api/s3-upload", {
                 method: "POST",
@@ -107,12 +129,19 @@ const S3UploadForm = () => {
     const resetModal = () => {
         setFile(null);
         setUploading(false);
+        setSuccess(false)
         setIsModalOpen(false);
         setFromRepository(true);
+        setToNewFolder(true);
+        setNewFolderName("");    
     }
     
     const handleFileOrigin = () => {
-        setFromRepository(!isFromRepository);
+        const status = !isFromRepository;
+        setFromRepository(status);
+        if (status == true) {
+            setToNewFolder(true)
+        }
     };
 
     const handleIsNewFolder = () => {
@@ -131,10 +160,6 @@ const S3UploadForm = () => {
                 start revision
             </button>
             <hr className="border-t border-stroke w-1/2 my-2"></hr>
-            
-            {success && (
-                <p className="text-success font-semibold ">File uploaded successfully!</p>
-            )}
 
             {isModalOpen && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
@@ -145,50 +170,6 @@ const S3UploadForm = () => {
                                 <FiX size={20}/>
                             </button>
                         </div>
-                        
-                        {/* Subject selection */}
-                        <form onSubmit={handleSubmit} className="px-10 py-4">
-                            <div className="flex flex-col mb-4 space-y-2">
-                                <h2 className="block mb-2 text-md font-semibold">
-                                    Which subject do you want to add the file in?
-                                </h2>
-                                <div className="flex gap-2 ml-4">
-                                    <select
-                                        className="bg-tertiary rounded-md cursor-pointer"
-                                        value={isNewSubject ? "new" : selectedSubject}
-                                        onChange={(e) => {
-                                            if (e.target.value === "new") {
-                                                setIsNewSubject(true);
-                                                setSelectedSubject("");
-                                            } else {
-                                                setIsNewSubject(false);
-                                                setSelectedSubject(e.target.value);
-                                            }
-                                        }}
-                                    >
-                                        <option value="">Select a subject</option>
-                                        {subjects.map((subj) => (
-                                            <option key={subj} value={subj}>
-                                                {subj}
-                                            </option>
-                                        ))}
-                                        <option value="new">Create new subject</option>
-                                    </select>
-                                </div>
-
-                                {isNewSubject && (
-                                    <div className="flex gap-2 ml-4">
-                                        <input
-                                            type="text"
-                                            placeholder="Enter new subject name"
-                                            value={newSubjectName}
-                                            onChange={(e) => setNewSubjectName(e.target.value)}
-                                            className="bg-tertiary rounded-md px-2"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </form>        
 
                         <form onSubmit={handleSubmit} className="px-10 py-4">
                             <div className="flex flex-col mb-4 space-y-2">
@@ -214,12 +195,35 @@ const S3UploadForm = () => {
                             </div>
 
                             {isFromRepository && (
-                                <div className="flex ml-9 gap-2 text-main text-sm">
-                                    <label htmlFor="repositoryFiles">File:</label>
-                                    <select id="repositoryFiles" name="repositoryFiles"
-                                            className="w-20 bg-tertiary rounded-md cursor-pointer">
-                                                <option value="Love">Love</option>
-                                    </select>
+                                <div className="ml-9 text-main text-sm">
+                                    <div className="flex gap-2 items-center">
+                                        <label htmlFor="repositoryFolders">Subject:</label>
+                                        <select id="repositoryFolders" name="repositoryFolders" onChange={handleSubjectChange}
+                                                className="w-50 bg-tertiary rounded-md drop-shadow-2xl cursor-pointer">
+                                            <option value="chooseSubject">— Choose Subject —</option>
+                                            {folderList.map((folder) => (
+                                                <option key={folder.prefix} value={folder.prefix}>
+                                                    {folder.prefix.split('/').filter(Boolean).pop()}
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                        {selectedFolder && (
+                                            <div className="flex ml-9 gap-2 text-main text-sm">
+                                                <label htmlFor="repositoryFiles">Paper:</label>
+                                                <select id="repositoryFiles" name="repositoryFiles" 
+                                                        onChange={(e) => setFile({ name: e.target.value } as File)}
+                                                        className="w-50 bg-tertiary rounded-md drop-shadow-2xl cursor-pointer">
+                                                    <option value="choosePaper">— Choose Paper —</option>                                    
+                                                    {subjectFiles.map((file) => (
+                                                        <option key={file.key} value={file.key}>
+                                                            {file.key.split('/').pop()}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -243,37 +247,55 @@ const S3UploadForm = () => {
                                             Upload to:
                                         </h2>
 
-                                        <div className="flex gap-2 ml-4">
+                                        <div className="flex gap-2 ml-4 text-sm">
                                             <input type="radio" id="newFolderOption" name="isNewFolder" value="newFolder"
                                                     onChange={handleIsNewFolder} className="cursor-pointer" defaultChecked/>
                                             <label htmlFor="newFolderOption" className="cursor-pointer">
-                                                New folder:
+                                                New subject folder:
                                             </label>
+                                            {isToNewFolder && (
+                                                <div className="flex">
+                                                    <input type="text" id="newFolderName" name="newFolderName"
+                                                            onChange={(e) => setNewFolderName(e.target.value)} required
+                                                            className="w-50 bg-tertiary pl-1 rounded-md drop-shadow-2xl cursor-text">
+                                                    </input>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        <div className="flex gap-2 ml-4">                                    
+                                        <div className="flex gap-2 ml-4 text-sm">                                    
                                             <input type="radio" id="currentFolderOption" name="isNewFolder" value="currentFolder"
                                                     onChange={handleIsNewFolder} className="cursor-pointer"/>
                                             <label htmlFor="currentFolderOption" className="cursor-pointer">
-                                                Current folder:
-                                            </label>
+                                                Current subject folder:
+                                            </label>                                            
+                                            {!isToNewFolder && (
+                                                <div className="flex">
+                                                    <select id="currentFolderSelect" name="currentFolderSelect" value={selectedCurrentFolder}
+                                                            onChange={(e) => setSelectedCurrentFolder(e.target.value)}
+                                                            className="w-50 bg-tertiary rounded-md drop-shadow-2xl cursor-pointer">   
+                                                        <option value="chooseSubject">— Choose Subject —</option>
+                                                        {folderList.map((folder) => (
+                                                            <option key={folder.prefix} value={folder.prefix}>
+                                                                {folder.prefix.split('/').filter(Boolean).pop()}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
                                         </div>                                
                                     </div>
                                 </div>
                             )}
                             
                             {uploading && (
-                                <div className="mb-4">
-                                    <p className="text-blue-700 font-medium"> Uploading file... </p>
-                                    <div className="w-full bg-gray-200 rounded-full h-2">
-                                        <div className="bg-blue-700 h-2 rounded-full animate-pulse"                               
-                                            style={{ width: "30%" }}>                                               
-                                        </div>
-                                    </div>
-                                </div>
+                                <p className="my-4 text-center text-main font-medium"> Uploading file... </p>
                             )}
 
-                            <br></br>
+                            {success && (
+                                <p className="my-4 text-center text-success font-medium"> File uploaded successfully!</p>
+                            )}
+
                             <div className="flex justify-end space-x-3">
                                 <button type="button" onClick={resetModal} className="px-4 py-2 rounded-md 
                                         bg-tertiary hover:bg-tertiary/75 cursor-pointer" disabled={uploading}>                                   
