@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FiX } from "react-icons/fi";
 
 const S3UploadForm = () => {
@@ -10,6 +10,31 @@ const S3UploadForm = () => {
     const [isFromRepository, setFromRepository] = useState(true);
     const [isToNewFolder, setToNewFolder] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [subjects, setSubjects] = useState<string[]>([]);
+    const [selectedSubject, setSelectedSubject] = useState("");
+    const [isNewSubject, setIsNewSubject] = useState(false);
+    const [newSubjectName, setNewSubjectName] = useState("");
+
+    useEffect(() => {
+        const fetchSubjects = async () => {
+        const uid = localStorage.getItem("uid");
+        if (!uid) return;
+        const res = await fetch(`/api/s3-render?uid=${uid}`, {
+            method: "GET",
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setSubjects(
+            (data.folders || []).map((f: any) => {
+                const parts = f.prefix.split("/").filter(Boolean);
+                return parts.pop();
+            })
+            );            
+            console.log(data);
+        }
+        };
+        if (isModalOpen) fetchSubjects();
+    }, [isModalOpen]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -48,11 +73,17 @@ const S3UploadForm = () => {
         setUploading(true);
 
         const uid = localStorage.getItem("uid");
-
         const formData = new FormData();
         formData.append("file", file);
         if (uid) {
             formData.append("uid", uid);
+        }
+        if (selectedSubject){
+            console.log(selectedSubject);
+            formData.append("subject", selectedSubject);
+        } else {
+            console.log(newSubjectName);
+            formData.append("subject", newSubjectName);
         }
         try {
             const response = await fetch("/api/s3-upload", {
@@ -65,6 +96,7 @@ const S3UploadForm = () => {
             const data = await response.json();
             console.log("File uploaded successfully:", data);
             setSuccess(true);
+            window.dispatchEvent(new CustomEvent("foldersUpdated"));
             resetModal();
         } catch (error) {
             console.error("Error uploading file:", error);
@@ -114,6 +146,50 @@ const S3UploadForm = () => {
                             </button>
                         </div>
                         
+                        {/* Subject selection */}
+                        <form onSubmit={handleSubmit} className="px-10 py-4">
+                            <div className="flex flex-col mb-4 space-y-2">
+                                <h2 className="block mb-2 text-md font-semibold">
+                                    Which subject do you want to add the file in?
+                                </h2>
+                                <div className="flex gap-2 ml-4">
+                                    <select
+                                        className="bg-tertiary rounded-md cursor-pointer"
+                                        value={isNewSubject ? "new" : selectedSubject}
+                                        onChange={(e) => {
+                                            if (e.target.value === "new") {
+                                                setIsNewSubject(true);
+                                                setSelectedSubject("");
+                                            } else {
+                                                setIsNewSubject(false);
+                                                setSelectedSubject(e.target.value);
+                                            }
+                                        }}
+                                    >
+                                        <option value="">Select a subject</option>
+                                        {subjects.map((subj) => (
+                                            <option key={subj} value={subj}>
+                                                {subj}
+                                            </option>
+                                        ))}
+                                        <option value="new">Create new subject</option>
+                                    </select>
+                                </div>
+
+                                {isNewSubject && (
+                                    <div className="flex gap-2 ml-4">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter new subject name"
+                                            value={newSubjectName}
+                                            onChange={(e) => setNewSubjectName(e.target.value)}
+                                            className="bg-tertiary rounded-md px-2"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </form>        
+
                         <form onSubmit={handleSubmit} className="px-10 py-4">
                             <div className="flex flex-col mb-4 space-y-2">
                                 <h2 className="block mb-2 text-md font-semibold">

@@ -53,9 +53,17 @@ export default function S3RenderFile() {
   const [currentPrefix, setCurrentPrefix] = useState<string>(rootPrefix);
 
   useEffect(() => {
-    getDocument(currentPrefix).then((data) => {
-      setFolders(data.folders || []);
-    });
+    const handleFoldersUpdated = () => {
+      getDocument(currentPrefix).then((data) => {
+        setFolders(data.folders || []);
+      });
+    };
+
+    window.addEventListener("foldersUpdated", handleFoldersUpdated);
+    handleFoldersUpdated();
+    return () => {
+      window.removeEventListener("foldersUpdated", handleFoldersUpdated);
+    };
   }, [currentPrefix]);
 
   const handleDeleteFolder = async (key: string) => {
@@ -66,12 +74,9 @@ export default function S3RenderFile() {
   };
 
   const subFolders = folders.filter((f) => {
+    if (!f.prefix.startsWith(currentPrefix) || f.prefix === currentPrefix) return false;
     const rest = f.prefix.slice(currentPrefix.length);
-    return (
-      f.prefix.startsWith(currentPrefix) &&
-      f.prefix !== currentPrefix &&
-      rest.split("/").filter(Boolean).length === 1
-    );
+    return rest.split("/").filter(Boolean).length === 1;
   });
   console.log("Subfolders:", subFolders);
 
@@ -81,7 +86,10 @@ export default function S3RenderFile() {
         {currentPrefix !== rootPrefix && (
           <button
             className="mr-2 text-gray-300 hover:text-white"
-            onClick={() => setCurrentPrefix(getParentPrefix(currentPrefix, rootPrefix))}
+            onClick={() => {
+              setCurrentPrefix(getParentPrefix(currentPrefix, rootPrefix));
+              layer = Math.max(layer - 1, 0);
+            }}
             title="Back"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -119,23 +127,23 @@ export default function S3RenderFile() {
                       rootPrefix={rootPrefix}
                       folderPrefix={folder.prefix}
                     />
-                    <button
-                      className="text-red-400 hover:text-red-600"
-                      title="Delete folder"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log(folder.prefix)
-                        handleDeleteFolder(folder.prefix);
-                      }}
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
                   </div>
-              )}
+                )}
+                <button
+                  className="text-red-400 hover:text-red-600 flex items-center gap-2"
+                  title="Delete folder"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log(folder.prefix)
+                    handleDeleteFolder(folder.prefix);
+                  }}
+                >
+                <Trash2 className="w-5 h-5" />
+                </button>
             </li>
           ))}
         </ul>
-      )}
+      )}    
     </div>
   );
 }

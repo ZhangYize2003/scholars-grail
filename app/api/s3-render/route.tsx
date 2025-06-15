@@ -22,10 +22,6 @@ const getContentType = (key: string) => {
   return "application/octet-stream";
 };
 
-// type ResponseData = {
-//     url: string;
-// }
-
 export async function GET(request: Request): Promise<NextResponse> {
     try {
         const { searchParams } = new URL(request.url);
@@ -38,13 +34,11 @@ export async function GET(request: Request): Promise<NextResponse> {
             Delimiter: '/'
         });
         const data = await s3Client.send(listCommand);
-
-        if (!data.Contents){
-            return NextResponse.json({ files: [] });
-        }
+        console.log("API response: ", data);
         const folders = (data.CommonPrefixes || []).map(prefix => ({
             prefix: prefix.Prefix,
         }));
+        console.log(folders);
         const files = await Promise.all(
             (data.Contents || [])
                 .filter(item => !item.Key!.endsWith('/'))
