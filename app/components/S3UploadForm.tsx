@@ -11,9 +11,30 @@ const S3UploadForm = () => {
     const [isToNewFolder, setToNewFolder] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            setFile(e.target.files[0]);
+            const selectedFile = e.target.files[0];
+            if (selectedFile.type === "application/pdf") {
+                const fileReader = new FileReader();
+                fileReader.onload = function() {
+                    const fileContent = fileReader.result as string;
+                    // Check for PDF page count by looking for /Type /Page entries
+                    const pageMatches = fileContent.match(/\/Type\s*\/Page[^s]/g);
+                    const pageCount = pageMatches ? pageMatches.length : 0;
+                    console.log("page count:", pageCount);
+                    if (pageCount > 15) {
+                        alert("You can only upload PDF files with 15 pages or fewer.");
+                        setFile(null);
+                        e.target.value = "";
+                    } else {
+                        setFile(selectedFile);
+                    }
+                };
+                fileReader.readAsText(selectedFile);
+            } else {
+                //if not pdf, can restrict to only pdf files later
+                setFile(selectedFile);
+            }
         } else {
             setFile(null);
         }
