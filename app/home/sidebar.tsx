@@ -18,7 +18,7 @@ const SideBar = ({isOpen}: SideBarProps) => {
                     <FiHome size="20" /> 
                     Home
                 </Link>
-                <Link href="/" className="sidebar_button">
+                <Link href="/grail-session" className="sidebar_button">
                     <FiFileText size="20" /> 
                     Grail Session
                 </Link>

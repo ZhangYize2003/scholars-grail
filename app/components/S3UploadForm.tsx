@@ -65,8 +65,8 @@ const S3UploadForm = () => {
                     const pageMatches = fileContent.match(/\/Type\s*\/Page[^s]/g);
                     const pageCount = pageMatches ? pageMatches.length : 0;
                     console.log("page count:", pageCount);
-                    if (pageCount > 15) {
-                        alert("You can only upload PDF files with 15 pages or fewer.");
+                    if (pageCount > 10) {
+                        alert("You can only upload PDF files with 10 pages or fewer.");
                         setFile(null);
                         e.target.value = "";
                     } else {

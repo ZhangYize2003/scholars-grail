@@ -13,8 +13,8 @@ type S3Folder = {
   prefix: string;
   files: S3File[];
 };
+
 let layer = 0;
-console.log(layer);
 
 const getDocument = async (prefix?: string) => {
   try {
