@@ -6,11 +6,15 @@ interface FolderSelectorProps {
 }
 
 export default function FolderSelector({ onFolderSelect }: FolderSelectorProps) {
+  const [uid, setUid] = useState<string | null>(null);
   const [subjects, setSubjects] = useState<string[]>([]);
   const [subfolders, setSubfolders] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>("");
-
-  const uid = localStorage.getItem("uid");
+  const [selectedSubfolder, setSelectedSubfolder] = useState<string>("");
+  useEffect(() => {
+    const storedUid = localStorage.getItem("uid");
+    setUid(storedUid);
+  }, []);
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -59,7 +63,7 @@ export default function FolderSelector({ onFolderSelect }: FolderSelectorProps) 
   }, [selectedSubject, uid]);
 
   return (
-    <div className="min-h-screen">
+    <div>
       <div className="flex justify-center mt-8 space-x-8">
         {/* Subject Dropdown */}
         <div>
@@ -70,7 +74,8 @@ export default function FolderSelector({ onFolderSelect }: FolderSelectorProps) 
             value={selectedSubject}
             onChange={(e) => {
               setSelectedSubject(e.target.value);
-              onFolderSelect(e.target.value, "");
+              onFolderSelect(e.target.value, ""); // Reset subfolder on subject change
+              setSelectedSubfolder(""); // reset subfolder selection
             }}
             className="w-64 text-white bg-tertiary rounded-md drop-shadow-2xl cursor-pointer px-3 py-2"
           >
@@ -90,7 +95,8 @@ export default function FolderSelector({ onFolderSelect }: FolderSelectorProps) 
               Select Folder
             </label>
             <select
-              onChange={(e) => onFolderSelect(selectedSubject, e.target.value)}
+              value={selectedSubfolder}
+              onChange={(e) => setSelectedSubfolder(e.target.value)}
               className="w-64 text-white bg-tertiary rounded-md drop-shadow-2xl cursor-pointer px-3 py-2"
             >
               <option value="">Choose a folder</option>
@@ -103,6 +109,17 @@ export default function FolderSelector({ onFolderSelect }: FolderSelectorProps) 
           </div>
         )}
       </div>
+
+      {selectedSubject && selectedSubfolder && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => onFolderSelect(selectedSubject, selectedSubfolder)}
+            className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 cursor-pointer"
+          >
+            Submit
+          </button>
+        </div>
+      )}
     </div>
   );
 }
