@@ -139,13 +139,16 @@ const S3UploadForm = () => {
     const handleFileOrigin = () => {
         const status = !isFromRepository;
         setFromRepository(status);
+        setFile(null);
+        setSelectedFolder("");
         if (status == true) {
-            setToNewFolder(true)
+            setToNewFolder(true)          
         }
     };
 
     const handleIsNewFolder = () => {
         setToNewFolder(!isToNewFolder);
+        setSelectedCurrentFolder("");
     };
 
     const handleButtonClick = () => {
@@ -296,6 +299,7 @@ const S3UploadForm = () => {
                                 <p className="my-4 text-center text-success font-medium"> File uploaded successfully!</p>
                             )}
 
+                            <br></br>
                             <div className="flex justify-end space-x-3">
                                 <button type="button" onClick={resetModal} className="px-4 py-2 rounded-md 
                                         bg-tertiary hover:bg-tertiary/75 cursor-pointer" disabled={uploading}>                                   
