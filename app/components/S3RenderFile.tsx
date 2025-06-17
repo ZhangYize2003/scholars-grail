@@ -81,7 +81,7 @@ export default function S3RenderFile() {
   console.log("Subfolders:", subFolders);
 
   return (
-    <div className="bg-gray-900 border-r border-gray-800 p-3 overflow-y-auto w-200 h-[500px] text-gray-100 text-xl rounded-lg shadow mx-auto">
+    <div className="bg-neutral-800 border-r border-gray-800 p-3 overflow-y-auto w-200 h-[500px] text-gray-100 text-xl rounded-lg shadow mx-auto">
       <div className="flex items-center mb-2">
         {currentPrefix !== rootPrefix && (
           <button
@@ -108,7 +108,7 @@ export default function S3RenderFile() {
           {subFolders.map((folder) => (
             <li key={folder.prefix} className="flex items-center justify-between">
               <div
-                className="flex items-center flex-grow cursor-pointer hover:bg-gray-700 rounded px-2 py-0.5"
+                className="flex items-center flex-grow cursor-pointer hover:bg-neutral-900 rounded px-2 py-0.5"
                 onClick={() => {
                   if (layer === 0) {
                     setCurrentPrefix(folder.prefix);
@@ -116,7 +116,7 @@ export default function S3RenderFile() {
                   }
                 }}
               >
-              <Folders className="w-4 h-4 mr-1 text-yellow-400" />
+              <Folders className="w-4 h-4 mr-1 text-yellow-700" />
               <span className="text-gray-100 text-left">
                 {folder.prefix.replace(currentPrefix, "").split("/")[0]}
               </span>
@@ -130,7 +130,7 @@ export default function S3RenderFile() {
                   </div>
                 )}
                 <button
-                  className="text-red-400 hover:text-red-600 flex items-center gap-2"
+                  className="text-red-400 hover:text-red-600 flex items-center gap-2 cursor-pointer"
                   title="Delete folder"
                   onClick={(e) => {
                     e.stopPropagation();

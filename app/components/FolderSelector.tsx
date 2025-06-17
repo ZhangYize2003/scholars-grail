@@ -3,9 +3,10 @@ import { useState, useEffect } from "react";
 
 interface FolderSelectorProps {
   onFolderSelect: (subject: string, subfolder: string) => void;
+  parsing: boolean;
 }
 
-export default function FolderSelector({ onFolderSelect }: FolderSelectorProps) {
+export default function FolderSelector({ onFolderSelect, parsing }: FolderSelectorProps) {
   const [uid, setUid] = useState<string | null>(null);
   const [subjects, setSubjects] = useState<string[]>([]);
   const [subfolders, setSubfolders] = useState<string[]>([]);
@@ -114,9 +115,12 @@ export default function FolderSelector({ onFolderSelect }: FolderSelectorProps) 
         <div className="flex justify-center mt-4">
           <button
             onClick={() => onFolderSelect(selectedSubject, selectedSubfolder)}
-            className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 cursor-pointer"
+            disabled={parsing}
+            className={`px-4 py-2 rounded ${
+              parsing ? "bg-gray-500 cursor-not-allowed" : "bg-gray-800 hover:bg-gray-900 cursor-pointer"
+            }`}
           >
-            Submit
+            {parsing ? "Parsing..." : "Parse"}
           </button>
         </div>
       )}
