@@ -1,12 +1,13 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { FiX } from "react-icons/fi";
-
+// import S3UploadForm2 from "./S3UploadForm2";
 
 const S3UploadForm = () => {
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModal2Open, setIsModal2Open] = useState(false);
     const [success, setSuccess] = useState(false);
     const [isFromRepository, setFromRepository] = useState(true);
     const [isToNewFolder, setToNewFolder] = useState(true);
@@ -119,7 +120,8 @@ const S3UploadForm = () => {
             console.log("File uploaded successfully:", data);
             setSuccess(true);
             window.dispatchEvent(new CustomEvent("foldersUpdated"));
-            resetModal();
+            setIsModalOpen(false);
+            setIsModal2Open(true);
         } catch (error) {
             console.error("Error uploading file:", error);
             setUploading(false);
@@ -307,12 +309,15 @@ const S3UploadForm = () => {
                                 </button>
                                 <button type="submit" className= {
                                     `px-4 py-2 rounded-md ${
-                                        !file || uploading 
-                                            ? "bg-accent cursor-not-allowed"    
-                                            : "bg-accent hover:bg-accent/75 cursor-pointer"
+                                        !file || uploading || 
+                                        (isToNewFolder && newFolderName.trim() === "") || 
+                                        (!isToNewFolder && selectedCurrentFolder === "") ? 
+                                        "bg-accent cursor-not-allowed" : "bg-accent hover:bg-accent/75 cursor-pointer"                                      
                                     }`}
-                                    disabled={!file || uploading}>
-                                    {uploading ? "Uploading..." : "Upload"}
+                                    disabled={!file || uploading ||
+                                            (isToNewFolder && newFolderName.trim() === "") || 
+                                            (!isToNewFolder && selectedCurrentFolder === "")}>
+                                    Next
                                 </button>
                             </div>
                         </form>
