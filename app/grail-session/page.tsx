@@ -31,6 +31,7 @@ export default function Page() {
   const [output, setOutput] = useState<HintsResponse | null>(null);
   const [marked, setMarked] = useState<MarkedResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [marking, setMarking] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedHint, setSelectedHint] = useState<number | null>(null);
   const [selectedTips, setSelectedTips] = useState<number | null>(null);
@@ -158,6 +159,8 @@ export default function Page() {
     } catch (error) {
       console.error(error);
       setError("Error occurred while generating content.");
+    }finally {
+      setMarking(false);
     }
   };
 
@@ -187,18 +190,18 @@ export default function Page() {
       <FolderSelector onFolderSelect={handleFolderSelect} parsing={parsing} />
       {loading && <p className="text-yellow-400 mt-2">Generating hints...</p>}
       {error && <p className="text-red-500 mt-2">{error}</p>}
-
+      {marking && <p className="text-yellow-400 mt-2">Marking...</p>}
       {output && (
         <div className="mt-8 flex justify-center gap-8">
           {/* Working Upload Area */}
           <div className="w-1/2 h-120 bg-black rounded p-4 shadow-lg">
             <h2 className="font-bold mb-4 text-white text-lg">Upload Your Workings Here</h2>
-            <div className="flex flex-col items-center space-y-2 w-full h-95 border-2 border-dashed border-white justify-center rounded">
-              <p className="text-gray-300 text-center">
-                Drop your working files here or click to upload
-                </p>
-              <UploadWorking subject={subject!} subfolder={subfolder!} setWorkingsText={setWorkingsText} onUploadComplete={fetchFiles}/>
-            </div>
+            <UploadWorking subject={subject!} subfolder={subfolder!} setWorkingsText={setWorkingsText} 
+              onUploadComplete={() => {
+                fetchFiles();
+                setMarking(true);
+              }}
+            />
           </div>
 
           <div className="w-1/2 flex flex-col gap-6">
