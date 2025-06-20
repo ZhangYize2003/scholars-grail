@@ -20,8 +20,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     console.log(output);
     let cleanedOutput = output.trim();
     if (cleanedOutput.startsWith("```json")) {
-    cleanedOutput = cleanedOutput.replace(/```json\s*/, '').replace(/```$/, '').trim();
+      cleanedOutput = cleanedOutput.replace(/```json\s*/, '').replace(/```$/, '').trim();
+    } else {
+        return NextResponse.json(
+          { error: "Failed to generate content" },
+          { status: 500 }
+        );
     }
+
     const parsedOutput = JSON.parse(cleanedOutput);
     return NextResponse.json(parsedOutput);
   } catch (error) {

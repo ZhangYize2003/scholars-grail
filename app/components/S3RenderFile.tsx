@@ -19,11 +19,7 @@ let layer = 0;
 const getDocument = async (prefix?: string) => {
   try {
     const uid = localStorage.getItem("uid");
-    const baseUrl = `/api/s3-render?uid=${uid}`;
-    const url =
-      prefix && prefix !== `usersData/${uid}/`
-        ? `${baseUrl}&prefix=${encodeURIComponent(prefix)}`
-        : baseUrl;
+    const url = `/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix!)}`;
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error("Failed to fetch document");
@@ -36,7 +32,7 @@ const getDocument = async (prefix?: string) => {
   }
 };
 
-// "back" button
+// for "back" button
 function getParentPrefix(prefix: string, rootPrefix: string) {
   layer=0;
   if (!prefix || prefix === rootPrefix) return "";
@@ -58,7 +54,7 @@ export default function S3RenderFile() {
         setFolders(data.folders || []);
       });
     };
-
+    // refresh page when change made -> move/delete functions
     window.addEventListener("foldersUpdated", handleFoldersUpdated);
     handleFoldersUpdated();
     return () => {
@@ -88,7 +84,7 @@ export default function S3RenderFile() {
             className="mr-2 text-gray-300 hover:text-white"
             onClick={() => {
               setCurrentPrefix(getParentPrefix(currentPrefix, rootPrefix));
-              layer = Math.max(layer - 1, 0);
+              layer = 0;
             }}
             title="Back"
           >
@@ -99,7 +95,7 @@ export default function S3RenderFile() {
           {layer === 0 ? 
             "Repository" : currentPrefix.replace(rootPrefix, "").split("/")
           }
-          </span>
+        </span>
       </div>
       {subFolders.length === 0 ? (
         <div className="text-gray-500 py-8 text-center">No Papers Here</div>
@@ -132,8 +128,7 @@ export default function S3RenderFile() {
                 <button
                   className="text-red-400 hover:text-red-600 flex items-center gap-2 cursor-pointer"
                   title="Delete folder"
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={() => {
                     console.log(folder.prefix)
                     handleDeleteFolder(folder.prefix);
                   }}

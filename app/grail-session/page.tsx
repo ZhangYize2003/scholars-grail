@@ -2,10 +2,20 @@
 import { useEffect, useState } from "react";
 import FolderSelector from "../components/FolderSelector";
 import Header from "../home/header";
+import UploadWorking from "../components/UploadWorking";
 
-type GeminiResponse = {
+type HintsResponse = {
   numberOfQuestions: number;
   hints: string[];
+};
+
+type MarkedResponse = {
+  numberOfQuestions: number;
+  correct: number[];
+  wrong: number[];
+  tips: {
+    [key: number]: string;
+  };
 };
 
 type S3File = {
@@ -17,108 +27,164 @@ export default function Page() {
   const [subject, setSubject] = useState<string | null>(null);
   const [subfolder, setSubfolder] = useState<string | null>(null);
   const [pdfText, setPdfText] = useState<string>("");
-  const [output, setOutput] = useState<GeminiResponse | null>(null);
+  const [workingsText, setWorkingsText] = useState<string>("");
+  const [output, setOutput] = useState<HintsResponse | null>(null);
+  const [marked, setMarked] = useState<MarkedResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedHint, setSelectedHint] = useState<number | null>(null);
+  const [selectedTips, setSelectedTips] = useState<number | null>(null);
   const [parsing, setParsing] = useState<boolean>(false);
   const [files, setFiles] = useState<S3File[]>([]);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
+  const [noOfFiles, setNoOfFiles] = useState<number | null>(null);
 
   const handleFolderSelect = (selectedSubject: string, selectedSubfolder: string) => {
     setSubject(selectedSubject);
     setSubfolder(selectedSubfolder);
   };
+  
+  const fetchFiles = async () => {
+    const uid = localStorage.getItem("uid");
+    if (!uid || !subject || !subfolder) return;
 
-  // Fetch file list from S3 for preview
-  useEffect(() => {
-    const fetchFiles = async () => {
-      const uid = localStorage.getItem("uid");
-      if (!uid || !subject || !subfolder) return;
+    const prefix = `usersData/${uid}/${subject}/${subfolder}/`;
+    const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
+    const data = await res.json();
+    console.log(data);
+    setFiles(data.files || []);
+    setNoOfFiles(data.KeyCount);
+    console.log(noOfFiles);
+  };
 
-      const prefix = `usersData/${uid}/${subject}/${subfolder}/`;
-      const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
-      const data = await res.json();
-      setFiles(data.files || []);
-    };
+  const fetchPdfText = async () => {
+    const uid = localStorage.getItem("uid");
+    if (!uid || !subject || !subfolder) return;
+    setParsing(true);
 
-    fetchFiles();
-  }, [subject, subfolder]);
+    const prefix = `usersData/${uid}/${subject}/${subfolder}/`;
+    const url = `/api/read-pdf?uid=${uid}&prefix=${encodeURIComponent(prefix)}`;
 
-  useEffect(() => {
-    const fetchPdfText = async () => {
-      const uid = localStorage.getItem("uid");
-      if (!uid || !subject || !subfolder) return;
-      setParsing(true);
+    const res = await fetch(url);
+    const data = await res.json();
+    setPdfText(data.text);
+    setParsing(false);
+  };
 
-      const prefix = `usersData/${uid}/${subject}/${subfolder}/`;
-      const url = `/api/read-pdf?uid=${uid}&prefix=${encodeURIComponent(prefix)}`;
+  const generateHint = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setOutput(null);
 
-      const res = await fetch(url);
-      const data = await res.json();
-      setPdfText(data.text);
-      setParsing(false);
-    };
+      if (!pdfText) return;
 
-    fetchPdfText();
-  }, [subject, subfolder]);
+      const prompt = `
+        You are an assistant that processes educational content. 
+        Given the following extracted PDF text, identify all the questions present and generate a short but helpful hint for each question.
 
-  useEffect(() => {
-    const generateText = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setOutput(null);
-
-        if (!pdfText) return;
-
-        const prompt = `
-          You are an assistant that processes educational content. 
-          Given the following extracted PDF text, identify all the questions present and generate a short but helpful hint for each question.
-
-          Return the response strictly in the following JSON format:
-          {
-            "numberOfQuestions": <number>,
-            "hints": ["hint 1", "hint 2", ...]
-          }
-
-          PDF Text:
-          """${pdfText}"""      
-        `;
-
-        const response = await fetch('/api/generate-ai', {
-          method: 'POST',
-          headers: {
-            'Content-type': 'application/json'
-          },
-          body: JSON.stringify({ body: prompt })
-        });
-
-        const data: GeminiResponse = await response.json();
-        if(response.ok) {
-          setOutput(data);
-        } else {
-          setError("Failed to generate hints.");
+        Return the response strictly in the following JSON format:
+        {
+          "numberOfQuestions": <number>,
+          "hints": ["hint 1", "hint 2", ...]
         }
-      } catch (error) {
-        console.error(error);
-        setError("Error occurred while generating content.");
-      } finally {
-        setLoading(false);
-      }
-    };
 
+        PDF Text:
+        """${pdfText}"""      
+      `;
+
+      const response = await fetch('/api/generate-ai', {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify({ body: prompt })
+      });
+
+      const data: HintsResponse = await response.json();
+      if(response.ok) {
+        setOutput(data);
+      } else {
+        setError("Failed to generate hints.");
+      }
+    } catch (error) {
+      console.error(error);
+      setError("Error occurred while generating content.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markWorkings = async () => {
+    try {
+      setError(null);
+      setMarked(null);
+
+      const prompt = `
+        You are an assistant that processes educational content. 
+        Given the following extracted PDF text, and the answers of a student, determine which questions are wrong and which are correct. 
+        Additionally, give them tips on where they might have gone wrong. Use "you" to address them directly.
+
+        Return the response strictly in the following JSON format:
+        {
+          "numberOfQuestions": <number>,
+          "correct": [1, 3, 4, 7,...],
+          "wrong": [2, 5, 8, ...],
+          "tips": ["2":<tip 2>, "5":<tip 5>, "8":<tip 8>...]
+        }
+
+        PDF Text with correct answers:
+        """${pdfText}"""
+        Workings:
+        """${workingsText}"""   
+      `;
+
+      const response = await fetch('/api/generate-ai', {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify({ body: prompt })
+      });
+
+      const data: MarkedResponse = await response.json();
+      if(response.ok) {
+        setMarked(data);
+        console.log(data);
+        setWorkingsText("");
+      } else {
+        setError("Failed to mark paper.");
+      }
+    } catch (error) {
+      console.error(error);
+      setError("Error occurred while generating content.");
+    }
+  };
+
+  useEffect(() => {
+    if (subject && subfolder) {
+      fetchFiles();
+      fetchPdfText();
+    }
+  }, [subject, subfolder]);
+
+  useEffect(() => {
     if (pdfText) {
-      generateText();
+      generateHint();
     }
   }, [pdfText]);
+
+  useEffect(() => {
+    if (workingsText) {
+      markWorkings();
+    }
+  }, [workingsText]);
 
   return (
     <div className="min-h-screen text-white pb-20 px-6">
       <Header />
       <h1 className="pt-20 text-gray-200">Grail Session</h1>
       <FolderSelector onFolderSelect={handleFolderSelect} parsing={parsing} />
-
       {loading && <p className="text-yellow-400 mt-2">Generating hints...</p>}
       {error && <p className="text-red-500 mt-2">{error}</p>}
 
@@ -127,8 +193,11 @@ export default function Page() {
           {/* Working Upload Area */}
           <div className="w-1/2 h-120 bg-black rounded p-4 shadow-lg">
             <h2 className="font-bold mb-4 text-white text-lg">Upload Your Workings Here</h2>
-            <div className="w-full h-95 border-2 border-dashed border-white flex items-center justify-center rounded">
-              <p className="text-gray-300 text-center">Drop your working files here or click to upload</p>
+            <div className="flex flex-col items-center space-y-2 w-full h-95 border-2 border-dashed border-white justify-center rounded">
+              <p className="text-gray-300 text-center">
+                Drop your working files here or click to upload
+                </p>
+              <UploadWorking subject={subject!} subfolder={subfolder!} setWorkingsText={setWorkingsText} onUploadComplete={fetchFiles}/>
             </div>
           </div>
 
@@ -204,9 +273,48 @@ export default function Page() {
                 </div>
               )}
             </div>
+            
+            {/* Marked Section */}
+            {marked && (
+              <div className="bg-black rounded p-4 shadow-lg">
+                <h2 className="font-bold mb-4 text-white text-lg">Marked Workings:</h2>
+
+                {/* All Questions in One Line */}
+                <div className="flex flex-wrap gap-3 justify-center mt-4">
+                  {Array.from({ length: marked.numberOfQuestions }, (_, i) => {
+                    const qNum = i + 1;
+                    const isCorrect = marked.correct.includes(qNum);
+                    const isWrong = marked.wrong.includes(qNum);
+
+                    return (
+                      <div key={`question-wrapper-${qNum}`} className="flex flex-col items-center">
+                        <button
+                          onClick={() => setSelectedTips(selectedTips === qNum ? null : qNum)}
+                          className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer
+                            ${isCorrect ? "bg-green-900 hover:bg-green-900/75" 
+                              : isWrong ? "bg-red-900 hover:bg-red-900/75" 
+                              : "bg-gray-800 hover:bg-gray-700"}`}
+                        >
+                          {qNum}
+                        </button>
+
+                      </div>
+                    );
+                  })}
+                </div>
+                <div>
+                  {/* Show tip only for the selected question */}
+                  {selectedTips !== null && (
+                    <div className="mt-2 text-gray-200 text-center">
+                      <h3 className="font-semibold mb-1">Tip for Question {selectedTips}:</h3>
+                      <p>{marked.tips[selectedTips] ?? "Nice."}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
-
       )}
     </div>
   );

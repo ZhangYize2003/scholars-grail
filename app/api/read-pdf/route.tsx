@@ -22,7 +22,7 @@ const textractClient = new TextractClient({
   credentials: { accessKeyId, secretAccessKey },
 });
 
-// Helper: start async text detection job for a single PDF file in S3
+// Send command to start job and wait for jobid
 async function startAsyncTextDetection(key: string): Promise<string> {
   const command = new StartDocumentTextDetectionCommand({
     DocumentLocation: { S3Object: { Bucket: bucketName, Name: key } },
@@ -33,7 +33,7 @@ async function startAsyncTextDetection(key: string): Promise<string> {
   return response.JobId;
 }
 
-// Helper: poll job status and get full text when done
+// Use jobid to repeatedly check whether textract is complete
 async function getAsyncTextDetectionResult(
   jobId: string
 ): Promise<string> {
@@ -100,7 +100,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     let combinedText = "";
 
-    // Process each PDF file asynchronously using Textract async API
+    // Process each file in the repo
     for (const file of pdfFiles) {
       const key = file.Key!;
       console.log(`Starting Textract job for ${key}`);
