@@ -15,7 +15,7 @@ const S3UploadForm = () => {
 
     const [folderList, setFolderList] = useState<{ prefix: string }[]>([]);
     const [selectedFolder, setSelectedFolder] = useState<string>("");
-    const [subjectFiles, setSubjectFiles] = useState<{ key: string }[]>([]);
+    const [paperList, setPaperList] = useState<{ prefix: string }[]>([]);
     const [newFolderName, setNewFolderName] = useState("");
     const [selectedCurrentFolder, setSelectedCurrentFolder] = useState("");
 
@@ -33,7 +33,39 @@ const S3UploadForm = () => {
         }
 
         const data = await response.json();
-        setSubjectFiles(data.files || []);
+        setPaperList(data.folders || []);
+    };
+
+    const handlePaperChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const paperPrefix = e.target.value; // Path is subject/paper folder/paper (paper folder and paper have the same name)
+        const fileName = paperPrefix.split("/").filter(Boolean).pop();
+
+        const uid = localStorage.getItem("uid");
+        if (!uid) return;
+
+        console.log("file name:", fileName);
+
+        const response = await fetch(`/api/s3-render?uid=${uid}&prefix=${paperPrefix}`);
+        if (!response.ok) {
+            console.error("Failed to fetch files for paper");
+            return;
+        }
+
+        const data = await response.json();
+        const paperKey = data.files.find((file: {key: string}) => 
+            file.key.endsWith(`/${fileName}.pdf`)
+        );
+        console.log("data:", data.files);
+        console.log("subjectFiles:", paperList);
+
+        if (paperKey) {
+            console.log("The selected paper: ", paperKey);
+            setFile(paperKey)
+            console.log("Paper:", file);
+        }
+        else {
+            console.log(`Error: cannot locate file ${fileName}.pdf`);
+        }
     };
 
     useEffect(() => {
@@ -71,7 +103,7 @@ const S3UploadForm = () => {
                         setFile(null);
                         e.target.value = "";
                     } else {
-                        setFile(selectedFile);
+                        setFile(selectedFile);                       
                     }
                 };
                 fileReader.readAsText(selectedFile);
@@ -81,7 +113,7 @@ const S3UploadForm = () => {
             }
         } else {
             setFile(null);
-        }
+        }     
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -135,7 +167,8 @@ const S3UploadForm = () => {
         setIsModalOpen(false);
         setFromRepository(true);
         setToNewFolder(true);
-        setNewFolderName("");    
+        setNewFolderName("");
+        setSelectedFolder("");   
     }
     
     const handleFileOrigin = () => {
@@ -217,14 +250,14 @@ const S3UploadForm = () => {
                                             <div className="flex ml-9 gap-2 text-main text-sm">
                                                 <label htmlFor="repositoryFiles">Paper:</label>
                                                 <select id="repositoryFiles" name="repositoryFiles" 
-                                                        onChange={(e) => setFile({ name: e.target.value } as File)}
+                                                        onChange={handlePaperChange}
                                                         className="w-50 bg-tertiary rounded-md drop-shadow-2xl cursor-pointer">
                                                     <option value="choosePaper">— Choose Paper —</option>                                    
-                                                    {subjectFiles.map((file) => (
-                                                        <option key={file.key} value={file.key}>
-                                                            {file.key.split('/').pop()}
-                                                        </option>
-                                                    ))}
+                                                        {paperList.map((folder) => (               
+                                                            <option key={folder.prefix} value={folder.prefix}>
+                                                                {folder.prefix.split("/").filter(Boolean).pop()}
+                                                            </option>                     
+                                                        ))}
                                                 </select>
                                             </div>
                                         )}
