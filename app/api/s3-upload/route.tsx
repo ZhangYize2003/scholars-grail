@@ -17,10 +17,10 @@ const s3Client = new S3Client({
 
 async function uploadFileToS3(buffer: Buffer<ArrayBuffer>, name: string, uid: string, subject: string) {
     const fileBuffer = buffer;
-    console.log("Uploading file to S3:", `usersData/${uid}/${subject}/${name.split(".")[0]}/${Date.now()}-${name}`);
+    console.log("Uploading file to S3:", `usersData/${uid}/${subject}/${name.split(".")[0]}/${name}`);
     const params = {
         Bucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME!,
-        Key: `usersData/${uid}/${subject}/${name.split(".")[0]}/${Date.now()}-${name}`,
+        Key: `usersData/${uid}/${subject}/${name.split(".")[0]}/${name}`,
         Body: fileBuffer,
         ContentType: "file/pdf"
     }
