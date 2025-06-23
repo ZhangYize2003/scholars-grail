@@ -26,6 +26,13 @@ const textractClient = new TextractClient({
   credentials: { accessKeyId, secretAccessKey },
 });
 
+type BoundingBox = {
+  Left: number;
+  Top: number;
+  Width: number;
+  Height: number;
+};
+
 // Combine Ques + Options
 function mergeBoundingBoxes(boxes: any[]) {
   const minX = Math.min(...boxes.map(b => b.Left));
@@ -58,52 +65,21 @@ async function getAsyncTextDetectionResult(
 ): Promise<{ text: string; boundingBoxes: { text: string; boundingBox: any }[] }> {
   let nextToken: string | undefined = undefined;
   let finished = false;
+  const allBlocks: any[] = [];
 
   while (!finished) {
     const command = new GetDocumentTextDetectionCommand({
       JobId: jobId,
       NextToken: nextToken,
     });
-
     const response: GetDocumentTextDetectionCommandOutput = await textractClient.send(command);
 
     if (response.JobStatus === "SUCCEEDED") {
-      const blocks = response.Blocks ?? [];
-      const allQuestions: { text: string; boundingBox: any }[] = [];
-
-      let currentQuestionText = "";
-      let currentBoundingBoxes: any[] = [];
-
-      for (const block of blocks) {
-        if (block.BlockType === "LINE" && block.Text && block.Geometry?.BoundingBox) {
-          const trimmedText = block.Text.trim();
-          if (questionRegex.test(trimmedText)) {
-            if (currentQuestionText) {
-              const mergedBoundingBox = mergeBoundingBoxes(currentBoundingBoxes);
-              allQuestions.push({ text: currentQuestionText.trim(), boundingBox: mergedBoundingBox });
-            }
-            currentQuestionText = trimmedText + "\n";
-            currentBoundingBoxes = [block.Geometry.BoundingBox];
-          } else if ((optionRegex.test(trimmedText) || currentQuestionText)) {
-            currentQuestionText += trimmedText + "\n";
-            currentBoundingBoxes.push(block.Geometry.BoundingBox);
-          }
-        }
-      }
-
-      if (currentQuestionText) {
-        const mergedBoundingBox = mergeBoundingBoxes(currentBoundingBoxes);
-        allQuestions.push({ text: currentQuestionText.trim(), boundingBox: mergedBoundingBox });
-      }
-
+      allBlocks.push(...(response.Blocks ?? []));
       if (response.NextToken) {
         nextToken = response.NextToken;
       } else {
         finished = true;
-        return {
-          text: allQuestions.map(q => q.text).join("\n"),
-          boundingBoxes: allQuestions
-        };
       }
     } else if (response.JobStatus === "FAILED") {
       throw new Error("Textract job failed");
@@ -112,8 +88,79 @@ async function getAsyncTextDetectionResult(
     }
   }
 
-  // safety net
-  return { text: "", boundingBoxes: [] };
+  const blockMap = new Map();
+  allBlocks.forEach(block => blockMap.set(block.Id, block));
+
+  function getWordBoundingBoxes(lineBlock: any) {
+    const wordBoxes: BoundingBox[] = [];
+    if (lineBlock.Relationships) {
+      for (const rel of lineBlock.Relationships) {
+        if (rel.Type === "CHILD") {
+          rel.Ids.forEach((id: string) => {
+            const child = blockMap.get(id);
+            if (child.BlockType === "WORD" && child.Geometry?.BoundingBox) {
+              wordBoxes.push(child.Geometry.BoundingBox);
+            }
+          });
+        }
+      }
+    }
+    return wordBoxes;
+  }
+
+  let started = false;
+  const allQuestions = [];
+  let collecting = false;
+  let currentBoxes: any[] = [];
+  let currentText = "";
+
+  for (const block of allBlocks) {
+    if (block.BlockType === "LINE" && block.Text && block.Geometry?.BoundingBox) {
+      const text = block.Text.trim();
+      const wordBoxes = getWordBoundingBoxes(block);
+
+      if (!started && questionRegex.test(text)) {
+        // First question detected —> start collecting
+        started = true;
+        collecting = true;
+        currentText = text + "\n";
+        currentBoxes = wordBoxes;
+        continue;
+      }
+
+      if (started) {
+        if (questionRegex.test(text)) {
+          if (collecting) {
+            allQuestions.push({
+              text: currentText.trim(),
+              boundingBox: mergeBoundingBoxes(currentBoxes),
+            });
+          }
+          // New question start
+          collecting = true;
+          currentText = text + "\n";
+          currentBoxes = wordBoxes;
+        } else if (collecting) {
+          // Still collect question's content (like options)
+          currentText += text + "\n";
+          currentBoxes.push(...wordBoxes);
+        }
+      }
+    }
+  }
+
+  // Handle last question
+  if (collecting) {
+    allQuestions.push({
+      text: currentText.trim(),
+      boundingBox: mergeBoundingBoxes(currentBoxes),
+    });
+  }
+
+  return {
+    text: allQuestions.map(q => q.text).join("\n"),
+    boundingBoxes: allQuestions
+  };
 }
 
 export async function GET(request: Request): Promise<NextResponse> {

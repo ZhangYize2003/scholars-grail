@@ -9,6 +9,11 @@ type HintsResponse = {
   hints: string[];
 };
 
+type BoundingBoxResponse = {
+  questionText: string[];
+  boundingBox: any;
+}
+
 type MarkedResponse = {
   numberOfQuestions: number;
   correct: number[];
@@ -78,9 +83,61 @@ export default function Page() {
     setParsing(false);
   };
 
-  const generateHint = async () => {
+  const orderBoundingBox= async () =>{
     try {
       setLoading(true);
+      setError(null);
+      setOutput(null);
+
+      if (!pdfText) return;
+      console.log(boundingBoxes);
+
+      // Role Prompting
+      const prompt = `
+      Given the following JSON of text blocks with bounding boxes, group them into questions. 
+
+      For each question:
+      1. Combine all related text blocks into a single 'question' array.
+      2. Calculate ONE merged bounding box that fully encloses all bounding boxes of that question.
+
+      For each question, return:
+      {
+        "question": ["full text of the question with options"],
+        "boundingBox": {
+          "Top": min Top,
+          "Left": min Left,
+          "Width": (max Right) - (min Left),
+          "Height": (max Bottom) - (min Top)
+        }
+      }
+
+      Bounding Box Info:
+      """${JSON.stringify(boundingBoxes)}"""
+      `;
+
+      const response = await fetch('/api/generate-ai', {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify({ body: prompt })
+      });
+
+      const data: BoundingBoxResponse = await response.json();
+      console.log(data);
+      if(response.ok) {
+        setBoundingboxes(data.boundingBox);
+      } else {
+        setError("Failed to generate hints.");
+      }
+    } catch (error) {
+      console.error(error);
+      setError("Error occurred while generating content.");
+    }
+  }
+
+  const generateHint = async () => {
+    try {
       setError(null);
       setOutput(null);
 
@@ -90,7 +147,7 @@ export default function Page() {
       const prompt = `
         You are an assistant that processes educational content. 
         Given the following extracted PDF text, identify all the questions present and generate a short but helpful hint for each question.
-
+                
         Return the response strictly in the following JSON format:
         {
           "numberOfQuestions": <number>,
@@ -98,7 +155,7 @@ export default function Page() {
         }
 
         PDF Text:
-        """${pdfText}"""      
+        """${pdfText}"""
       `;
 
       const response = await fetch('/api/generate-ai', {
@@ -110,6 +167,7 @@ export default function Page() {
       });
 
       const data: HintsResponse = await response.json();
+      console.log(data);
       if(response.ok) {
         setOutput(data);
       } else {
@@ -226,6 +284,7 @@ export default function Page() {
 
   useEffect(() => {
     if (pdfText) {
+      orderBoundingBox();
       generateHint();
     }
   }, [pdfText]);
