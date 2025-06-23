@@ -35,7 +35,10 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
   const [selectedHint, setSelectedHint] = useState<number | null>(null);
   const [selectedTips, setSelectedTips] = useState<number | null>(null);
+  const [hardQues, setHardQues] = useState<number[]>([]);
+  const [boundingBoxes, setBoundingboxes] = useState<number[]>([]);
   const [parsing, setParsing] = useState<boolean>(false);
+  const [adding, setAdding] = useState<boolean>(false);
   const [files, setFiles] = useState<S3File[]>([]);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
   const [noOfFiles, setNoOfFiles] = useState<number | null>(null);
@@ -68,6 +71,9 @@ export default function Page() {
 
     const res = await fetch(url);
     const data = await res.json();
+    console.log(data);
+    console.log(data.boundingBoxes)
+    setBoundingboxes(data.boundingBoxes);
     setPdfText(data.text);
     setParsing(false);
   };
@@ -80,6 +86,7 @@ export default function Page() {
 
       if (!pdfText) return;
 
+      // Role Prompting
       const prompt = `
         You are an assistant that processes educational content. 
         Given the following extracted PDF text, identify all the questions present and generate a short but helpful hint for each question.
@@ -120,7 +127,8 @@ export default function Page() {
     try {
       setError(null);
       setMarked(null);
-
+      
+      // Role Prompting
       const prompt = `
         You are an assistant that processes educational content. 
         Given the following extracted PDF text, and the answers of a student, determine which questions are wrong and which are correct. 
@@ -151,6 +159,7 @@ export default function Page() {
       const data: MarkedResponse = await response.json();
       if(response.ok) {
         setMarked(data);
+        setHardQues(data.wrong);
         console.log(data);
         setWorkingsText("");
       } else {
@@ -162,6 +171,50 @@ export default function Page() {
     }finally {
       setMarking(false);
     }
+  };
+
+  const toggleHardQues = (qNum: number) => {
+    setHardQues((prev) => {
+      if (prev?.includes(qNum)){
+        return prev.filter((num) => num !== qNum);
+      }
+      else {
+        return [...prev, qNum];
+      }
+    });
+  };
+
+  const addHardQues = async () =>{
+    console.log(hardQues);
+    setAdding(true);
+    // Create a JSON metadata for tracking what we addin in
+    const uid = localStorage.getItem("uid");
+    const url = `usersData/${uid}/${subject}/Challenging Questions/${subfolder}.json`;
+    const formData = new FormData();
+    formData.append("url", url);
+    formData.append("hardQues", JSON.stringify(hardQues));
+    console.log(hardQues)
+    try {
+      const postResponse = await fetch("/api/json-readwrite", {
+        method: "POST",
+        body: formData,
+      })
+      if (!postResponse.ok){
+        const errorData = await postResponse.json();
+        throw new Error(errorData.error || "Failed to upload file");
+      }
+      const postData = await postResponse.json();
+      console.log("File uploaded successfully:", postData);
+
+      const getResponse = await fetch(`/api/json-readwrite?url=${encodeURIComponent(url)}`, {method: "GET"});
+      const getData = await getResponse.json();
+      console.log(getData);
+
+      
+    } catch(error){
+      console.error("Error during file operation:", error);
+    }
+    setAdding(false);
   };
 
   useEffect(() => {
@@ -191,17 +244,59 @@ export default function Page() {
       {loading && <p className="text-yellow-400 mt-2">Generating hints...</p>}
       {error && <p className="text-red-500 mt-2">{error}</p>}
       {marking && <p className="text-yellow-400 mt-2">Marking...</p>}
+      {adding && <p className="text-yellow-400 mt-2">Adding to Challenging Questions repo...</p>}
       {output && (
         <div className="mt-8 flex justify-center gap-8">
           {/* Working Upload Area */}
           <div className="w-1/2 h-120 bg-black rounded p-4 shadow-lg">
-            <h2 className="font-bold mb-4 text-white text-lg">Upload Your Workings Here</h2>
-            <UploadWorking subject={subject!} subfolder={subfolder!} setWorkingsText={setWorkingsText} 
-              onUploadComplete={() => {
-                fetchFiles();
-                setMarking(true);
-              }}
-            />
+            <div>
+              <h2 className="font-bold mb-4 text-white text-lg">Upload Your Workings Here</h2>
+              <UploadWorking subject={subject!} subfolder={subfolder!} setWorkingsText={setWorkingsText} 
+                onUploadComplete={() => {
+                  fetchFiles();
+                  setMarking(true);
+                }}
+              />
+            </div>
+            <div>              
+              {marked && (
+              <div className="bg-black rounded p-4 shadow-lg">
+                <h2 className="font-bold mb-4 text-white text-lg">Add these to {subject}'s Challenging questions Repo.</h2>
+
+                <div className="flex flex-wrap gap-3 justify-center mt-4">
+                  {Array.from({ length: marked.numberOfQuestions }, (_, i) => {
+                    const qNum = i + 1;
+                    let isHard = hardQues.includes(qNum);
+                    return (
+                      <div key={`question-wrapper-${qNum}`}>
+                        <div className="flex flex-col items-center">
+                          <button
+                            onClick={() => toggleHardQues(qNum)}
+                            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer
+                              ${isHard ? "bg-yellow-500" 
+                              : "bg-gray-500 hover:bg-gray-500/75"}`
+                            }
+                          >
+                            {qNum}
+                          </button>
+                        </div>
+                        
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={()=>addHardQues()}
+                  disabled={adding}
+                  className={`px-4 py-2 rounded ${
+                    adding ? "bg-gray-500 cursor-not-allowed" : "bg-gray-800 hover:bg-gray-900 cursor-pointer"
+                  }`}
+                >
+                {adding ? "Adding..." : "Add"}
+                </button>
+              </div>
+            )}
+            </div>
           </div>
 
           <div className="w-1/2 flex flex-col gap-6">
@@ -280,9 +375,8 @@ export default function Page() {
             {/* Marked Section */}
             {marked && (
               <div className="bg-black rounded p-4 shadow-lg">
-                <h2 className="font-bold mb-4 text-white text-lg">Marked Workings:</h2>
+                <h2 className="font-bold mb-4 text-white text-lg">Score: {marked.correct.length}/{marked.numberOfQuestions}</h2>
 
-                {/* All Questions in One Line */}
                 <div className="flex flex-wrap gap-3 justify-center mt-4">
                   {Array.from({ length: marked.numberOfQuestions }, (_, i) => {
                     const qNum = i + 1;
@@ -306,7 +400,6 @@ export default function Page() {
                   })}
                 </div>
                 <div>
-                  {/* Show tip only for the selected question */}
                   {selectedTips !== null && (
                     <div className="mt-2 text-gray-200 text-center">
                       <h3 className="font-semibold mb-1">Tip for Question {selectedTips}:</h3>
