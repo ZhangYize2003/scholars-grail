@@ -12,6 +12,10 @@ const accessKeyId = process.env.NEXT_PUBLIC_AWS_S3_ACCESS_KEY_ID!;
 const secretAccessKey = process.env.NEXT_PUBLIC_AWS_S3_SECRET_ACCESS_KEY!;
 const bucketName = process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME!;
 
+// Create a regex to pick up start of Question -> Bounding Box
+const questionRegex = /^(question|ques)?\s*\d+[\.\):]?/i;
+const optionRegex = /^[A-D]\s*[\.\)]\s*/i;
+
 const s3Client = new S3Client({
   region,
   credentials: { accessKeyId, secretAccessKey },
@@ -21,6 +25,28 @@ const textractClient = new TextractClient({
   region,
   credentials: { accessKeyId, secretAccessKey },
 });
+
+type BoundingBox = {
+  Left: number;
+  Top: number;
+  Width: number;
+  Height: number;
+};
+
+// Combine Ques + Options
+function mergeBoundingBoxes(boxes: any[]) {
+  const minX = Math.min(...boxes.map(b => b.Left));
+  const minY = Math.min(...boxes.map(b => b.Top));
+  const maxX = Math.max(...boxes.map(b => b.Left + b.Width));
+  const maxY = Math.max(...boxes.map(b => b.Top + b.Height));
+
+  return {
+    Left: minX,
+    Top: minY,
+    Width: maxX - minX,
+    Height: maxY - minY,
+  };
+}
 
 // Send command to start job and wait for jobid
 async function startAsyncTextDetection(key: string): Promise<string> {
@@ -36,42 +62,105 @@ async function startAsyncTextDetection(key: string): Promise<string> {
 // Use jobid to repeatedly check whether textract is complete
 async function getAsyncTextDetectionResult(
   jobId: string
-): Promise<string> {
+): Promise<{ text: string; boundingBoxes: { text: string; boundingBox: any }[] }> {
   let nextToken: string | undefined = undefined;
   let finished = false;
-  const lines: string[] = [];
+  const allBlocks: any[] = [];
 
   while (!finished) {
     const command = new GetDocumentTextDetectionCommand({
       JobId: jobId,
       NextToken: nextToken,
     });
-
-    const response: GetDocumentTextDetectionCommandOutput =
-      await textractClient.send(command);
+    const response: GetDocumentTextDetectionCommandOutput = await textractClient.send(command);
 
     if (response.JobStatus === "SUCCEEDED") {
-      const blocks = response.Blocks ?? [];
-      for (const block of blocks) {
-        if (block.BlockType === "LINE" && block.Text) {
-          lines.push(block.Text);
-        }
-      }
-
+      allBlocks.push(...(response.Blocks ?? []));
       if (response.NextToken) {
-        nextToken = response.NextToken; // more pages available
+        nextToken = response.NextToken;
       } else {
-        finished = true; // all results received
+        finished = true;
       }
     } else if (response.JobStatus === "FAILED") {
       throw new Error("Textract job failed");
     } else {
-      // Job still in progress, wait and retry
       await new Promise((r) => setTimeout(r, 3000));
     }
   }
 
-  return lines.join("\n");
+  const blockMap = new Map();
+  allBlocks.forEach(block => blockMap.set(block.Id, block));
+
+  function getWordBoundingBoxes(lineBlock: any) {
+    const wordBoxes: BoundingBox[] = [];
+    if (lineBlock.Relationships) {
+      for (const rel of lineBlock.Relationships) {
+        if (rel.Type === "CHILD") {
+          rel.Ids.forEach((id: string) => {
+            const child = blockMap.get(id);
+            if (child.BlockType === "WORD" && child.Geometry?.BoundingBox) {
+              wordBoxes.push(child.Geometry.BoundingBox);
+            }
+          });
+        }
+      }
+    }
+    return wordBoxes;
+  }
+
+  let started = false;
+  const allQuestions = [];
+  let collecting = false;
+  let currentBoxes: any[] = [];
+  let currentText = "";
+
+  for (const block of allBlocks) {
+    if (block.BlockType === "LINE" && block.Text && block.Geometry?.BoundingBox) {
+      const text = block.Text.trim();
+      const wordBoxes = getWordBoundingBoxes(block);
+
+      if (!started && questionRegex.test(text)) {
+        // First question detected —> start collecting
+        started = true;
+        collecting = true;
+        currentText = text + "\n";
+        currentBoxes = wordBoxes;
+        continue;
+      }
+
+      if (started) {
+        if (questionRegex.test(text)) {
+          if (collecting) {
+            allQuestions.push({
+              text: currentText.trim(),
+              boundingBox: mergeBoundingBoxes(currentBoxes),
+            });
+          }
+          // New question start
+          collecting = true;
+          currentText = text + "\n";
+          currentBoxes = wordBoxes;
+        } else if (collecting) {
+          // Still collect question's content (like options)
+          currentText += text + "\n";
+          currentBoxes.push(...wordBoxes);
+        }
+      }
+    }
+  }
+
+  // Handle last question
+  if (collecting) {
+    allQuestions.push({
+      text: currentText.trim(),
+      boundingBox: mergeBoundingBoxes(currentBoxes),
+    });
+  }
+
+  return {
+    text: allQuestions.map(q => q.text).join("\n"),
+    boundingBoxes: allQuestions
+  };
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -99,6 +188,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
 
     let combinedText = "";
+    const allBoundingBoxes: { file: string; boxes: { text: string; boundingBox: any }[] }[] = [];
 
     // Process each file in the repo
     for (const file of pdfFiles) {
@@ -107,11 +197,12 @@ export async function GET(request: Request): Promise<NextResponse> {
       const jobId = await startAsyncTextDetection(key);
       console.log(`Job started with ID: ${jobId}`);
 
-      const text = await getAsyncTextDetectionResult(jobId);
+      const { text, boundingBoxes } = await getAsyncTextDetectionResult(jobId);
       combinedText += `\n--- ${key} ---\n${text}\n`;
+      allBoundingBoxes.push({ file: key, boxes: boundingBoxes });
     }
 
-    return NextResponse.json({ text: combinedText });
+    return NextResponse.json({ text: combinedText, boundingBoxes: allBoundingBoxes });
   } catch (error) {
     console.error("Error processing PDFs with Textract async:", error);
     return NextResponse.json(
