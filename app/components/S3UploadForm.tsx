@@ -6,22 +6,22 @@ import { FiX } from "react-icons/fi";
 interface props {
   setOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
   setOpenModal2: React.Dispatch<React.SetStateAction<boolean>>;
+  subject: string;
+  setSubject: React.Dispatch<React.SetStateAction<string>>;
   paperFolder: string;
   setPaperFolder: React.Dispatch<React.SetStateAction<string>>;
   paper: File | null;
   setPaper: React.Dispatch<React.SetStateAction<File | null>>;
 };
 
-const S3UploadForm = ({ setOpenModal, setOpenModal2, paperFolder, setPaperFolder, paper, setPaper}: props) => {
+const S3UploadForm = ({ setOpenModal, setOpenModal2, subject, setSubject, paperFolder, setPaperFolder, paper, setPaper}: props) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isFromRepository, setFromRepository] = useState(true);
     const [isToNewSubject, setToNewSubject] = useState(true);
-    const [uploading, setUploading] = useState(false);
-    const [success, setSuccess] = useState(false);
-
-    const [subject, setSubject] = useState<string>("");
     const [subjectList, setSubjectList] = useState<{ prefix: string }[]>([]);
     const [paperList, setPaperList] = useState<{ prefix: string }[]>([]);
+    const [uploading, setUploading] = useState(false);
+    const [success, setSuccess] = useState(false);
 
     useEffect(() => {
         const fetchRepository = async () => {
@@ -112,7 +112,8 @@ const S3UploadForm = ({ setOpenModal, setOpenModal2, paperFolder, setPaperFolder
                         setPaper(null);
                         e.target.value = "";
                     } else {
-                        setPaper(selectedFile);                       
+                        setPaper(selectedFile);
+                        console.log("Paper:", paper);                       
                     }
                 };
                 fileReader.readAsText(selectedFile);
@@ -134,9 +135,12 @@ const S3UploadForm = ({ setOpenModal, setOpenModal2, paperFolder, setPaperFolder
 
         const uid = localStorage.getItem("uid");
         const formData = new FormData();
-        formData.append("file", paper);
+        const paperFolderName = paper.name.split(".")[0];
+        
         if (uid) {
             formData.append("uid", uid);
+            formData.append("paper", paper);
+            formData.append("paperFolder", paperFolderName);
         }
         
         if (!isFromRepository) {
@@ -154,33 +158,40 @@ const S3UploadForm = ({ setOpenModal, setOpenModal2, paperFolder, setPaperFolder
                 method: "POST",
                 body: formData,
             });
+
             if (!response.ok) {
                 throw new Error("File upload failed");
             }
             const data = await response.json();
             console.log("File uploaded successfully:", data);
+            setPaperFolder(paperFolderName);
             setUploading(false);
             setSuccess(true);
+            setFromRepository(true);
+            setToNewSubject(true);
             window.dispatchEvent(new CustomEvent("foldersUpdated"));
+            
             setTimeout(() => {
+                setSuccess(false);
                 setOpenModal(false);
                 setOpenModal2(true);
             }, 1500);
 
-        } catch (error) {
+        } 
+        catch (error) {
             console.error("Error uploading file:", error);
             setUploading(false);
         }
     };
 
     const resetModal = () => {
-        setPaper(null);
-        setUploading(false);
-        setSuccess(false)
         setOpenModal(false);
+        setSubject("");
+        setPaper(null); 
         setFromRepository(true);
-        setToNewSubject(true);
-        setSubject("");   
+        setToNewSubject(true);     
+        setUploading(false);
+        setSuccess(false);
     }
     
     const handlePaperOrigin = () => {
@@ -189,7 +200,7 @@ const S3UploadForm = ({ setOpenModal, setOpenModal2, paperFolder, setPaperFolder
         setPaper(null);
         setSubject("");
         if (status == true) {
-            setToNewSubject(true)          
+            setToNewSubject(true);          
         }
     };
 

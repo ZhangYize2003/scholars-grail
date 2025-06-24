@@ -1,33 +1,25 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from "next/navigation";
 import { FiX } from "react-icons/fi";
 
 interface props {
   setOpenModal2: React.Dispatch<React.SetStateAction<boolean>>;
+  subject: string;
+  paperFolder: string;
+  setPaper: React.Dispatch<React.SetStateAction<File | null>>;
+  working: File | null;
+  setWorking: React.Dispatch<React.SetStateAction<File | null>>;
 };
 
-const S3UploadForm2 = ({ setOpenModal2 }: props) => {
-    const [working, setWorking] = useState<File | null>(null);
-    const [uploading, setUploading] = useState(false);
-    const [isPaperCompleted, setIsPaperCompleted] = useState(true);
+const S3UploadForm2 = ({ setOpenModal2, subject, paperFolder, setPaper, working, setWorking }: props) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isPaperCompleted, setIsPaperCompleted] = useState(true); 
+    const [uploading, setUploading] = useState(false);
+    const [success, setSuccess] = useState(false);
+    const router = useRouter();
 
-
-    const resetModal = () => {
-        setWorking(null);
-        setUploading(false);
-        setOpenModal2(false);
-    };
-
-    const handleButtonClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handlePaperCompletion = () => {
-        setIsPaperCompleted(!isPaperCompleted);
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleWorkingSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const selectedFile = e.target.files[0];
             if (selectedFile.type === "application/pdf") {
@@ -56,48 +48,73 @@ const S3UploadForm2 = ({ setOpenModal2 }: props) => {
         }
     };
 
-    // const handleSubmit = async (e: React.FormEvent) => {
-    //     e.preventDefault();
-    //     if (!file) {
-    //         return;
-    //     }
-    //     setUploading(true);
+    const handleSubmit = async (e: React.FormEvent) => {
+        if (isPaperCompleted) {
+            e.preventDefault();
+            if (!working) {
+                return;
+            }
+            setUploading(true);
+            console.log("paper folder:", paperFolder);
 
-    //     const uid = localStorage.getItem("uid");
-    //     const formData = new FormData();
-    //     formData.append("file", file);
-    //     if (uid) {
-    //         formData.append("uid", uid);
-    //     }
-        
-    //     if (!isFromRepository) {
-    //         if (isToNewFolder && newFolderName.trim() !== "") {
-    //             formData.append("subject", newFolderName.trim());
-    //         } else if (!isToNewFolder) {
-    //             const parts = selectedCurrentFolder.split('/').filter(Boolean);
-    //             const subject = parts[parts.length - 1];
-    //             formData.append("subject", subject);
-    //         }
-    //     }
+            const uid = localStorage.getItem("uid");
+            const formData = new FormData();
+            const paperFolderName = paperFolder.split("/").filter(Boolean).pop() || ""; 
 
-    //     try {
-    //         const response = await fetch("/api/s3-upload", {
-    //             method: "POST",
-    //             body: formData,
-    //         });
-    //         if (!response.ok) {
-    //             throw new Error("File upload failed");
-    //         }
-    //         const data = await response.json();
-    //         console.log("File uploaded successfully:", data);
-    //         setSuccess(true);
-    //         window.dispatchEvent(new CustomEvent("foldersUpdated"));
-    //         setOpenModal(false);
-    //     } catch (error) {
-    //         console.error("Error uploading file:", error);
-    //         setUploading(false);
-    //     }
-    // };
+            if (uid) {
+                formData.append("uid", uid);
+                formData.append("subject", subject);
+                formData.append("paper", working);
+                formData.append("paperFolder", paperFolderName);
+            }
+
+            try {
+                const response = await fetch("/api/s3-upload", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error("File upload failed");
+                }
+                const data = await response.json();
+                console.log("File uploaded successfully:", data);
+                setUploading(false);
+                setSuccess(true);
+                window.dispatchEvent(new CustomEvent("foldersUpdated"));
+                setTimeout(() => {
+                    setSuccess(false);
+                    setOpenModal2(false);
+                    router.replace("/grail-session");            
+                }, 1500);
+            } 
+            catch (error) {
+                console.error("Error uploading file:", error);
+                setUploading(false);
+            }
+        }
+        else {
+            setOpenModal2(false);
+            router.replace("/grail-session");
+        }
+    };
+
+    const resetModal = () => {
+        setOpenModal2(false);
+        setPaper(null);
+        setWorking(null);
+        setIsPaperCompleted(true);
+        setUploading(false);       
+        setSuccess(false);
+    };
+
+    const handleButtonClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handlePaperCompletion = () => {
+        setIsPaperCompleted(!isPaperCompleted);
+    };
     
     return (
         <div className="fixed inset-0 backdrop-blur-sm z-40">
@@ -110,7 +127,7 @@ const S3UploadForm2 = ({ setOpenModal2 }: props) => {
                         </button>
                     </div>
 
-                    <form className="px-10 py-4">
+                    <form onSubmit={handleSubmit} className="px-10 py-4">
                         <div className="flex flex-col mb-4 space-y-2">
                             <h2 className="block mb-2 text-md font-semibold">
                                 Have you completed the paper?
@@ -140,7 +157,7 @@ const S3UploadForm2 = ({ setOpenModal2 }: props) => {
                                             className="w-20 bg-tertiary rounded-md cursor-pointer hover:bg-tertiary/75">
                                         choose file
                                     </button>
-                                    <input type="file" ref={fileInputRef} onChange={handleFileChange}
+                                    <input type="file" ref={fileInputRef} onChange={handleWorkingSelection}
                                         className="hidden" disabled={uploading}/>
                                     {working && (
                                         <p className="truncate"> File name: {working.name}</p>
@@ -148,7 +165,15 @@ const S3UploadForm2 = ({ setOpenModal2 }: props) => {
                                 </div>
                             </div>    
                         )}
-                        
+
+                        {uploading && (
+                            <p className="my-4 text-center text-main font-medium"> Uploading file... </p>
+                        )}
+
+                        {success && (
+                            <p className="my-4 text-center text-success font-medium"> File uploaded successfully!</p>
+                        )}
+
                         <br></br>
                         <div className="flex justify-end space-x-3">
                             <button type="button" onClick={resetModal} className="px-4 py-2 rounded-md 

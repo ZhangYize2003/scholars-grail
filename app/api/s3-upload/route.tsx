@@ -14,33 +14,34 @@ const s3Client = new S3Client({
     }
 });
 
-async function uploadFileToS3(buffer: Buffer<ArrayBuffer>, name: string, uid: string, subject: string) {
+async function uploadFileToS3(buffer: Buffer<ArrayBuffer>, paper: string, paperFolder: string, uid: string, subject: string) {
     const fileBuffer = buffer;
-    console.log("Uploading file to S3:", `usersData/${uid}/${subject}/${name.split(".")[0]}/${name}`);
+    console.log("Uploading file to S3:", `usersData/${uid}/${subject}/${paperFolder}/${paper}`);
     const params = {
         Bucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME!,
-        Key: `usersData/${uid}/${subject}/${name.split(".")[0]}/${name}`,
+        Key: `usersData/${uid}/${subject}/${paperFolder}/${paper}`,
         Body: fileBuffer,
         ContentType: "file/pdf"
     }
 
     const command = new PutObjectCommand(params);
     await s3Client.send(command);
-    return name;
+    return paper;
 }
 
 export async function POST(request: Request) {
     try {
         const formData = await request.formData();
-        const file = formData.get("file");
+        const paper = formData.get("paper");
+        const paperFolder = formData.get("paperFolder");
         const uid = formData.get("uid");
         const subject = formData.get("subject");
-        if (!file || typeof file === "string") {
+        if (!paper || typeof paper === "string") {
             return NextResponse.json({ error: "No file provided or file is not a Blob" }, { status: 400 });
         }
 
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const fileName = await uploadFileToS3(buffer, file.name, uid as string, subject as string);
+        const buffer = Buffer.from(await paper.arrayBuffer());
+        const fileName = await uploadFileToS3(buffer, paper.name, paperFolder as string, uid as string, subject as string);
 
         return NextResponse.json({ success: true, fileName });
 
