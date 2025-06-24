@@ -35,14 +35,23 @@ export async function POST(request: NextRequest) {
         const hardQues = formData.get("hardQues");
         console.log(hardQues);
         const url = formData.get("url");
+        const boundingBoxes = formData.get("boundingBoxes");
         if (typeof hardQues !== "string") {
             return NextResponse.json({ error: "hardQues must be a string." }, { status: 400 });
         }
         if (typeof url !== 'string') {
             return NextResponse.json({ error: "url must be a string." }, { status: 400 });
         }
-
-        const fileName = await uploadJSONToS3(hardQues, url);
+        if (typeof boundingBoxes !== 'string') {
+            return NextResponse.json({ error: "boundingBoxes must be a string." }, { status: 400 });
+        }
+        const combinedData = {
+            hardQues: JSON.parse(hardQues),
+            boundingBoxes: JSON.parse(boundingBoxes)
+        };
+        const jsonData = JSON.stringify(combinedData);
+        console.log(jsonData);
+        const fileName = await uploadJSONToS3(jsonData, url);
         return NextResponse.json({ success: true, fileName });
     } catch (error) {
         console.error("Error uploading file:", error);

@@ -9,10 +9,6 @@ type HintsResponse = {
   hints: string[];
 };
 
-type BoundingBoxResponse = {
-  questionText: string[];
-  boundingBox: any;
-}
 
 type MarkedResponse = {
   numberOfQuestions: number;
@@ -22,6 +18,20 @@ type MarkedResponse = {
     [key: number]: string;
   };
 };
+
+type BoundingBox = {
+  Left: number;
+  Top: number;
+  Width: number;
+  Height: number;
+};
+
+type QuestionBoundingBox = {
+  question: string;
+  boundingBox: BoundingBox;
+  page: number;
+};
+type BoundingBoxResponse = QuestionBoundingBox[];
 
 type S3File = {
   key: string;
@@ -41,12 +51,13 @@ export default function Page() {
   const [selectedHint, setSelectedHint] = useState<number | null>(null);
   const [selectedTips, setSelectedTips] = useState<number | null>(null);
   const [hardQues, setHardQues] = useState<number[]>([]);
-  const [boundingBoxes, setBoundingboxes] = useState<number[]>([]);
+  const [boundingBoxes, setBoundingBoxes] = useState<QuestionBoundingBox[]>([]);
   const [parsing, setParsing] = useState<boolean>(false);
   const [adding, setAdding] = useState<boolean>(false);
   const [files, setFiles] = useState<S3File[]>([]);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
   const [noOfFiles, setNoOfFiles] = useState<number | null>(null);
+  const [refreshkey, setRefreshkey] = useState(0); 
 
   const handleFolderSelect = (selectedSubject: string, selectedSubfolder: string) => {
     setSubject(selectedSubject);
@@ -61,7 +72,13 @@ export default function Page() {
     const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
     const data = await res.json();
     console.log(data);
-    setFiles(data.files || []);
+    const allowedExtensions = ['.pdf', '.jpeg', '.jpg', '.png'];
+    const filteredFiles = (data.files || []).filter((file: S3File) => {
+      const fileExtension = file.key.toLowerCase().substring(file.key.lastIndexOf('.'));
+      return allowedExtensions.includes(fileExtension);
+    });
+
+    setFiles(filteredFiles);
     setNoOfFiles(data.KeyCount);
     console.log(noOfFiles);
   };
@@ -69,6 +86,15 @@ export default function Page() {
   const fetchPdfText = async () => {
     const uid = localStorage.getItem("uid");
     if (!uid || !subject || !subfolder) return;
+    setMarked(null);
+    setMarking(false);
+    setHardQues([]);
+    setBoundingBoxes([]);
+    setPdfText("");
+    setWorkingsText("");
+    setOutput(null);
+    setSelectedHint(null);
+    setSelectedTips(null);
     setParsing(true);
 
     const prefix = `usersData/${uid}/${subject}/${subfolder}/`;
@@ -78,7 +104,7 @@ export default function Page() {
     const data = await res.json();
     console.log(data);
     console.log(data.boundingBoxes)
-    setBoundingboxes(data.boundingBoxes);
+    setBoundingBoxes(data.boundingBoxes);
     setPdfText(data.text);
     setParsing(false);
   };
@@ -104,11 +130,12 @@ export default function Page() {
       {
         "question": ["full text of the question with options"],
         "boundingBox": {
-          "Top": min Top,
-          "Left": min Left,
-          "Width": (max Right) - (min Left),
-          "Height": (max Bottom) - (min Top)
-        }
+          "Top": min Top <float>,
+          "Left": min Left <float>,
+          "Width": (max Right) - (min Left) <float>,
+          "Height": (max Bottom) - (min Top) <float>
+        },
+        "page": page number <number>
       }
 
       Bounding Box Info:
@@ -126,7 +153,8 @@ export default function Page() {
       const data: BoundingBoxResponse = await response.json();
       console.log(data);
       if(response.ok) {
-        setBoundingboxes(data.boundingBox);
+        setBoundingBoxes(data);
+        console.log(boundingBoxes);
       } else {
         setError("Failed to generate hints.");
       }
@@ -247,11 +275,22 @@ export default function Page() {
     setAdding(true);
     // Create a JSON metadata for tracking what we addin in
     const uid = localStorage.getItem("uid");
+    if (!uid || !subject) {
+      setError("User ID or subject missing");
+      setAdding(false);
+      return;
+    }
     const url = `usersData/${uid}/${subject}/Challenging Questions/${subfolder}.json`;
+    console.log("Complete BoundingBoxes:", boundingBoxes);
+    const filteredBoundingBoxes = boundingBoxes.filter((_, index) =>
+      hardQues.includes(index + 1)
+    );
+
+    console.log("Filtered BoundingBoxes:", filteredBoundingBoxes);
     const formData = new FormData();
     formData.append("url", url);
     formData.append("hardQues", JSON.stringify(hardQues));
-    console.log(hardQues)
+    formData.append("boundingBoxes", JSON.stringify(filteredBoundingBoxes));
     try {
       const postResponse = await fetch("/api/json-readwrite", {
         method: "POST",
@@ -264,11 +303,25 @@ export default function Page() {
       const postData = await postResponse.json();
       console.log("File uploaded successfully:", postData);
 
-      const getResponse = await fetch(`/api/json-readwrite?url=${encodeURIComponent(url)}`, {method: "GET"});
-      const getData = await getResponse.json();
-      console.log(getData);
+      const cropResponse = await fetch("/api/crop-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME!,
+          uid,
+          subject,
+          subfolder,
+        }),
+      });
 
+      if (!cropResponse.ok) {
+        const cropError = await cropResponse.json();
+        throw new Error(cropError.error || "Failed to crop PDF");
+      }
+      const cropData = await cropResponse.json();
+      console.log("Crop PDF result:", cropData);
       
+      setRefreshkey((prevKey) => prevKey + 1);
     } catch(error){
       console.error("Error during file operation:", error);
     }
@@ -299,7 +352,7 @@ export default function Page() {
     <div className="min-h-screen text-white pb-20 px-6">
       <Header />
       <h1 className="pt-20 text-gray-200">Grail Session</h1>
-      <FolderSelector onFolderSelect={handleFolderSelect} parsing={parsing} />
+      <FolderSelector onFolderSelect={handleFolderSelect} parsing={parsing} refreshkey={refreshkey} />
       {loading && <p className="text-yellow-400 mt-2">Generating hints...</p>}
       {error && <p className="text-red-500 mt-2">{error}</p>}
       {marking && <p className="text-yellow-400 mt-2">Marking...</p>}
@@ -318,7 +371,7 @@ export default function Page() {
               />
             </div>
             <div>              
-              {marked && (
+              {marked && subfolder !== "Challenging Questions" && (
               <div className="bg-black rounded p-4 shadow-lg">
                 <h2 className="font-bold mb-4 text-white text-lg">Add these to {subject}'s Challenging questions Repo.</h2>
 

@@ -113,10 +113,12 @@ async function getAsyncTextDetectionResult(
   let collecting = false;
   let currentBoxes: any[] = [];
   let currentText = "";
+  let currentPage = 1;
 
   for (const block of allBlocks) {
     if (block.BlockType === "LINE" && block.Text && block.Geometry?.BoundingBox) {
       const text = block.Text.trim();
+      const pageNumber = block.Page;
       const wordBoxes = getWordBoundingBoxes(block);
 
       if (!started && questionRegex.test(text)) {
@@ -134,12 +136,14 @@ async function getAsyncTextDetectionResult(
             allQuestions.push({
               text: currentText.trim(),
               boundingBox: mergeBoundingBoxes(currentBoxes),
+              page: currentPage,
             });
           }
           // New question start
           collecting = true;
           currentText = text + "\n";
           currentBoxes = wordBoxes;
+          currentPage = pageNumber;
         } else if (collecting) {
           // Still collect question's content (like options)
           currentText += text + "\n";
@@ -154,6 +158,7 @@ async function getAsyncTextDetectionResult(
     allQuestions.push({
       text: currentText.trim(),
       boundingBox: mergeBoundingBoxes(currentBoxes),
+      page: currentPage,
     });
   }
 
