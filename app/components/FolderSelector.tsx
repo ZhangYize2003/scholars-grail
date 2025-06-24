@@ -4,65 +4,70 @@ import { useState, useEffect } from "react";
 interface FolderSelectorProps {
   onFolderSelect: (subject: string, subfolder: string) => void;
   parsing: boolean;
+  refreshkey: number;
 }
 
-export default function FolderSelector({ onFolderSelect, parsing }: FolderSelectorProps) {
+export default function FolderSelector({ onFolderSelect, parsing, refreshkey }: FolderSelectorProps) {
   const [uid, setUid] = useState<string | null>(null);
   const [subjects, setSubjects] = useState<string[]>([]);
   const [subfolders, setSubfolders] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedSubfolder, setSelectedSubfolder] = useState<string>("");
+  const fetchSubfolders = async () => {
+    if (!selectedSubject) {
+      setSubfolders([]);
+      return;
+    }
+
+    try {
+      const prefix = `usersData/${uid}/${selectedSubject}/`;
+      const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
+      const data = await res.json();
+
+      const subfolderList = data.folders.map((f: any) => {
+        const parts = f.prefix.split("/").filter(Boolean);
+        return parts[parts.length - 1];
+      });
+
+      setSubfolders(subfolderList);
+    } catch (error) {
+      console.error("Error fetching subfolders:", error);
+    }
+  };
+  
+  const fetchSubjects = async () => {
+    try {
+      const res = await fetch(`/api/s3-render?uid=${uid}`);
+      const data = await res.json();
+
+      const subjectList = data.folders.map((f: any) => {
+        const parts = f.prefix.split("/").filter(Boolean);
+        return parts[parts.length - 1];
+      });
+
+      setSubjects(subjectList);
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+    }
+  };
+
   useEffect(() => {
     const storedUid = localStorage.getItem("uid");
     setUid(storedUid);
   }, []);
 
   useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const res = await fetch(`/api/s3-render?uid=${uid}`);
-        const data = await res.json();
-
-        const subjectList = data.folders.map((f: any) => {
-          const parts = f.prefix.split("/").filter(Boolean);
-          return parts[parts.length - 1];
-        });
-
-        setSubjects(subjectList);
-      } catch (error) {
-        console.error("Error fetching subjects:", error);
-      }
-    };
-
     if (uid) fetchSubjects();
   }, [uid]);
 
   useEffect(() => {
-    const fetchSubfolders = async () => {
-      if (!selectedSubject) {
-        setSubfolders([]);
-        return;
-      }
-
-      try {
-        const prefix = `usersData/${uid}/${selectedSubject}/`;
-        const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
-        const data = await res.json();
-
-        const subfolderList = data.folders.map((f: any) => {
-          const parts = f.prefix.split("/").filter(Boolean);
-          return parts[parts.length - 1];
-        });
-
-        setSubfolders(subfolderList);
-      } catch (error) {
-        console.error("Error fetching subfolders:", error);
-      }
-    };
-
     if (selectedSubject) fetchSubfolders();
   }, [selectedSubject, uid]);
-
+  
+  useEffect(() => {
+    fetchSubfolders();
+  }, [refreshkey]);
+  
   return (
     <div>
       <div className="flex justify-center mt-8 space-x-8">
