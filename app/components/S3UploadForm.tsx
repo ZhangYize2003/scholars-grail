@@ -1,27 +1,22 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { FiX } from "react-icons/fi";
-// import S3UploadForm2 from "./S3UploadForm2";
+import { useRevisionContext } from "./RevisionContext";
 
 interface props {
   setOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
   setOpenModal2: React.Dispatch<React.SetStateAction<boolean>>;
-  subject: string;
-  setSubject: React.Dispatch<React.SetStateAction<string>>;
-  paperFolder: string;
-  setPaperFolder: React.Dispatch<React.SetStateAction<string>>;
-  paper: File | null;
-  setPaper: React.Dispatch<React.SetStateAction<File | null>>;
 };
 
-const S3UploadForm = ({ setOpenModal, setOpenModal2, subject, setSubject, paperFolder, setPaperFolder, paper, setPaper}: props) => {
+const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
+    const {subject, setSubject, paperFolder, setPaperFolder, paper, setPaper} = useRevisionContext();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isFromRepository, setFromRepository] = useState(true);
     const [isToNewSubject, setToNewSubject] = useState(true);
     const [subjectList, setSubjectList] = useState<{ prefix: string }[]>([]);
     const [paperList, setPaperList] = useState<{ prefix: string }[]>([]);
     const [uploading, setUploading] = useState(false);
-    const [success, setSuccess] = useState(false);
+    const [success, setSuccess] = useState(false); 
 
     useEffect(() => {
         const fetchRepository = async () => {

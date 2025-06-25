@@ -13,10 +13,6 @@ export default function Home() {
   const [userName, setUserName] = useState<string>("");
   const [openModal, setOpenModal] = useState(false);
   const [openModal2, setOpenModal2] = useState(false);
-  const [subject, setSubject] = useState<string>("");
-  const [paperFolder, setPaperFolder] = useState<string>("");
-  const [paper, setPaper] = useState<File | null>(null); 
-  const [working, setWorking] = useState<File | null>(null);
 
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isLoggedIn");
@@ -56,10 +52,8 @@ export default function Home() {
                 start revision
             </button>
             <hr className="border-t border-stroke w-1/2 my-2"></hr>
-            {openModal && <S3UploadForm setOpenModal={setOpenModal} setOpenModal2={setOpenModal2} subject={subject}
-            setSubject={setSubject} paperFolder={paperFolder} setPaperFolder={setPaperFolder} paper={paper} setPaper={setPaper}/>}
-            {openModal2 && <S3UploadForm2 setOpenModal2={setOpenModal2} subject={subject} paperFolder={paperFolder} setPaper={setPaper}
-            working={working} setWorking={setWorking}/>}
+            {openModal && <S3UploadForm setOpenModal={setOpenModal} setOpenModal2={setOpenModal2}/>}
+            {openModal2 && <S3UploadForm2 setOpenModal2={setOpenModal2}/>}
           </div>
       </div>
 

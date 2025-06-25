@@ -2,17 +2,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from "next/navigation";
 import { FiX } from "react-icons/fi";
+import { useRevisionContext } from "./RevisionContext";
 
 interface props {
   setOpenModal2: React.Dispatch<React.SetStateAction<boolean>>;
-  subject: string;
-  paperFolder: string;
-  setPaper: React.Dispatch<React.SetStateAction<File | null>>;
-  working: File | null;
-  setWorking: React.Dispatch<React.SetStateAction<File | null>>;
 };
 
-const S3UploadForm2 = ({ setOpenModal2, subject, paperFolder, setPaper, working, setWorking }: props) => {
+const S3UploadForm2 = ({setOpenModal2}: props) => {
+    const {subject, paperFolder, setPaper, working, setWorking} = useRevisionContext();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isPaperCompleted, setIsPaperCompleted] = useState(true); 
     const [uploading, setUploading] = useState(false);
