@@ -104,14 +104,17 @@ export default function Page() {
     setParsing(false);
   };
 
-  const fetchWorkingText = async (url:string) => {
-      console.log(url);
-      const res = await fetch(`/api/workings-upload?key=${url}`, {
-          method: 'GET',
-      });
-      const data = await res.json();
-      setWorkingsText(data.text);
-      console.log(data.text);
+  const fetchWorkingText = async (file: File) => {
+    if (!file) return;
+    setMarking(true);
+    const uid = localStorage.getItem("uid");
+    const workingURL = `usersData/${uid}/${subject}/${paperFolder}/${file.name}`
+    const res = await fetch(`/api/workings-upload?key=${workingURL}`, {
+        method: 'GET',
+    });
+    const data = await res.json();
+    setWorkingsText(data.text);
+    console.log(data.text);
   };
 
   useEffect(() => {
@@ -119,10 +122,8 @@ export default function Page() {
       const uid = localStorage.getItem("uid");
       if (!uid) {
         return;
-      }   
-      const url = `usersData/${uid}/${subject}/${paperFolder}/${working}`
-      fetchWorkingText(url);
-      setMarking(true);
+      }
+      console.log(working.name);
       fetchFiles();
     }
   }, [working]);
@@ -386,8 +387,9 @@ export default function Page() {
             <div>
               <h2 className="font-bold mb-4 text-white text-lg">Upload Your Workings Here</h2>
               <UploadWorking  
-                onUploadComplete={() => {
-                  setMarking(true);
+                onUploadComplete={(file) => {
+                  fetchFiles();
+                  fetchWorkingText(file);
                 }}
               />
             </div>

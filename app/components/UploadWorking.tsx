@@ -4,25 +4,25 @@ import { Upload } from 'lucide-react';
 import { useRevisionContext } from "../components/RevisionContext";
 
 interface WorkingFileProps {
-  onUploadComplete: () => void
+  onUploadComplete: (file: File) => void;
 }
 
 export default function UploadingWorking({ onUploadComplete }: WorkingFileProps) {
     const {subject,  paperFolder, working, setWorking} = useRevisionContext();    
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    
+
     const handleSubmit = async (working: File) => {
         console.log(working);
         if (!working) {
             return;
         }
         setUploading(true);
-        
         const uid = localStorage.getItem("uid");
         if (!uid) {
             return;
         }   
+
         const formData = new FormData();
         formData.append("uid", uid);    
         formData.append("subject", subject);
@@ -40,9 +40,8 @@ export default function UploadingWorking({ onUploadComplete }: WorkingFileProps)
             }
             const data = await response.json();
             console.log("Working uploaded successfully:", data);
-
             window.dispatchEvent(new CustomEvent("foldersUpdated"));
-            onUploadComplete();
+            onUploadComplete(working);
             setUploading(false);
         } catch (error) {
             console.error("Error uploading Working:", error);
