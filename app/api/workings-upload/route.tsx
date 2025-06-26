@@ -75,16 +75,17 @@ async function getAsyncTextDetectionResult(jobId: string): Promise<string> {
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const file = formData.get("file");
     const uid = formData.get("uid");
-    const repository = formData.get("repository");
+    const subject = formData.get("subject");
+    const paperFodler = formData.get("paperFolder");
+    const working = formData.get("working");
 
-    if (!file || typeof file === "string") {
+    if (!working || typeof working === "string") {
       return NextResponse.json({ error: "No file provided or file is not a Blob" }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const url = `usersData/${uid}/${repository}/${Date.now()}-${file.name}`;
+    const buffer = Buffer.from(await working.arrayBuffer());
+    const url = `usersData/${uid}/${subject}/${paperFodler}/${working.name}`;
 
     const params = {
       Bucket: bucketName,

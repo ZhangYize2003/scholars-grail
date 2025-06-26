@@ -1,14 +1,14 @@
 "use client"
 import { useEffect, useState } from "react";
-import FolderSelector from "../components/FolderSelector";
 import Header from "../home/header";
 import UploadWorking from "../components/UploadWorking";
+import RevisionModal from "../components/RevisionModal";
+import { useRevisionContext } from "../components/RevisionContext";
 
 type HintsResponse = {
   numberOfQuestions: number;
   hints: string[];
 };
-
 
 type MarkedResponse = {
   numberOfQuestions: number;
@@ -39,8 +39,8 @@ type S3File = {
 };
 
 export default function Page() {
-  const [subject, setSubject] = useState<string | null>(null);
-  const [subfolder, setSubfolder] = useState<string | null>(null);
+  const {subject, setSubject, paperFolder, setPaperFolder, paper, setPaper, working, setWorking} = useRevisionContext();
+
   const [pdfText, setPdfText] = useState<string>("");
   const [workingsText, setWorkingsText] = useState<string>("");
   const [output, setOutput] = useState<HintsResponse | null>(null);
@@ -58,17 +58,12 @@ export default function Page() {
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
   const [noOfFiles, setNoOfFiles] = useState<number | null>(null);
   const [refreshkey, setRefreshkey] = useState(0); 
-
-  const handleFolderSelect = (selectedSubject: string, selectedSubfolder: string) => {
-    setSubject(selectedSubject);
-    setSubfolder(selectedSubfolder);
-  };
   
   const fetchFiles = async () => {
     const uid = localStorage.getItem("uid");
-    if (!uid || !subject || !subfolder) return;
+    if (!uid || !subject || !paperFolder) return;
 
-    const prefix = `usersData/${uid}/${subject}/${subfolder}/`;
+    const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
     const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
     const data = await res.json();
     console.log(data);
@@ -85,7 +80,7 @@ export default function Page() {
 
   const fetchPdfText = async () => {
     const uid = localStorage.getItem("uid");
-    if (!uid || !subject || !subfolder) return;
+    if (!uid || !subject || !paperFolder) return;
     setMarked(null);
     setMarking(false);
     setHardQues([]);
@@ -97,7 +92,7 @@ export default function Page() {
     setSelectedTips(null);
     setParsing(true);
 
-    const prefix = `usersData/${uid}/${subject}/${subfolder}/`;
+    const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
     const url = `/api/read-pdf?uid=${uid}&prefix=${encodeURIComponent(prefix)}`;
 
     const res = await fetch(url);
@@ -108,6 +103,29 @@ export default function Page() {
     setPdfText(data.text);
     setParsing(false);
   };
+
+  const fetchWorkingText = async (url:string) => {
+      console.log(url);
+      const res = await fetch(`/api/workings-upload?key=${url}`, {
+          method: 'GET',
+      });
+      const data = await res.json();
+      setWorkingsText(data.text);
+      console.log(data.text);
+  };
+
+  useEffect(() => {
+    if (working) {
+      const uid = localStorage.getItem("uid");
+      if (!uid) {
+        return;
+      }   
+      const url = `usersData/${uid}/${subject}/${paperFolder}/${working}`
+      fetchWorkingText(url);
+      setMarking(true);
+      fetchFiles();
+    }
+  }, [working]);
 
   const orderBoundingBox= async () =>{
     try {
@@ -280,7 +298,7 @@ export default function Page() {
       setAdding(false);
       return;
     }
-    const url = `usersData/${uid}/${subject}/Challenging Questions/${subfolder}.json`;
+    const url = `usersData/${uid}/${subject}/Challenging Questions/${paperFolder}.json`;
     console.log("Complete BoundingBoxes:", boundingBoxes);
     const filteredBoundingBoxes = boundingBoxes.filter((_, index) =>
       hardQues.includes(index + 1)
@@ -310,7 +328,7 @@ export default function Page() {
           bucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME!,
           uid,
           subject,
-          subfolder,
+          paperFolder,
         }),
       });
 
@@ -329,11 +347,11 @@ export default function Page() {
   };
 
   useEffect(() => {
-    if (subject && subfolder) {
+    if (subject && paperFolder) {
       fetchFiles();
       fetchPdfText();
     }
-  }, [subject, subfolder]);
+  }, [subject, paperFolder]);
 
   useEffect(() => {
     if (pdfText) {
@@ -352,26 +370,29 @@ export default function Page() {
     <div className="min-h-screen text-white pb-20 px-6">
       <Header />
       <h1 className="pt-20 text-gray-200">Grail Session</h1>
-      <FolderSelector onFolderSelect={handleFolderSelect} parsing={parsing} refreshkey={refreshkey} />
+      {subject.trim() === "" && paperFolder.trim() === "" && (
+        <RevisionModal/>
+      )}
+     
       {loading && <p className="text-yellow-400 mt-2">Generating hints...</p>}
-      {error && <p className="text-red-500 mt-2">{error}</p>}
+      {error && <p className="text-error mt-2">{error}</p>}
       {marking && <p className="text-yellow-400 mt-2">Marking...</p>}
       {adding && <p className="text-yellow-400 mt-2">Adding to Challenging Questions repo...</p>}
+      
       {output && (
         <div className="mt-8 flex justify-center gap-8">
           {/* Working Upload Area */}
           <div className="w-1/2 h-120 bg-black rounded p-4 shadow-lg">
             <div>
               <h2 className="font-bold mb-4 text-white text-lg">Upload Your Workings Here</h2>
-              <UploadWorking subject={subject!} subfolder={subfolder!} setWorkingsText={setWorkingsText} 
+              <UploadWorking  
                 onUploadComplete={() => {
-                  fetchFiles();
                   setMarking(true);
                 }}
               />
             </div>
             <div>              
-              {marked && subfolder !== "Challenging Questions" && (
+              {marked && paperFolder !== "Challenging Questions" && (
               <div className="bg-black rounded p-4 shadow-lg">
                 <h2 className="font-bold mb-4 text-white text-lg">Add these to {subject}'s Challenging questions Repo.</h2>
 
@@ -417,7 +438,7 @@ export default function Page() {
               {files.length > 0 && (
                 <div className="mb-4">
                   <label className="font-bold mb-4 text-white text-lg block">
-                    Working on {subject} &rarr; {subfolder}
+                    Working on {subject} &rarr; {paperFolder}
                   </label>
                   <div className="flex flex-col gap-2 mt-4">
                     {files.map((file) => {
