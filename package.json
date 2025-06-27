@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest --watch",
+    "test": "jest --watchAll",
+    "test-watch": "jest --watch",
     "test-gs": "jest --testPathPattern=_test/grail-session/page.test.tsx",
     "test-s3": "jest --testPathPattern=_test/S3UploadForm/page.test.tsx"
   },
