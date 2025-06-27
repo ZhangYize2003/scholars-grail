@@ -73,10 +73,10 @@ export default function FolderSelector({ onFolderSelect, parsing, refreshkey }: 
       <div className="flex justify-center mt-8 space-x-8">
         {/* Subject Dropdown */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1 text-center">
+          <label htmlFor="subject-select" className="block text-sm font-medium text-gray-300 mb-1 text-center">
             Select Subject
           </label>
-          <select
+          <select id="subject-select"
             value={selectedSubject}
             onChange={(e) => {
               setSelectedSubject(e.target.value);
@@ -97,10 +97,10 @@ export default function FolderSelector({ onFolderSelect, parsing, refreshkey }: 
         {/* Subfolder Dropdown */}
         {selectedSubject && (
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1 text-center">
+            <label htmlFor="folder-select" className="block text-sm font-medium text-gray-300 mb-1 text-center">
               Select Folder
             </label>
-            <select
+            <select id="folder-select"
               value={selectedSubfolder}
               onChange={(e) => setSelectedSubfolder(e.target.value)}
               className="w-64 text-white bg-tertiary rounded-md drop-shadow-2xl cursor-pointer px-3 py-2"

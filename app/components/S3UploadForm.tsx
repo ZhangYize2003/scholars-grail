@@ -282,7 +282,7 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
                                             className="w-20 bg-tertiary rounded-md cursor-pointer hover:bg-tertiary/75">
                                         choose file
                                     </button>
-                                    <input type="file" ref={fileInputRef} onChange={handlePaperUpload}
+                                    <input type="file" data-testid="file-input" ref={fileInputRef} onChange={handlePaperUpload}
                                         className="hidden" disabled={uploading}/>
                                     {paper && (
                                         <p className="truncate"> File name: {paper.name}</p>
@@ -303,7 +303,7 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
                                         </label>
                                         {isToNewSubject && (
                                             <div className="flex">
-                                                <input type="text" id="newSubjectName" name="newSubjectName"
+                                                <input type="text" id="newSubjectName" name="newSubjectName" data-testid="new-subject-input"
                                                         onChange={(e) => setSubject(e.target.value)} required
                                                         className="w-50 bg-tertiary pl-1 rounded-md drop-shadow-2xl cursor-text">
                                                 </input>
@@ -312,14 +312,14 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
                                     </div>
 
                                     <div className="flex gap-2 ml-4 text-sm">                                    
-                                        <input type="radio" id="currentSubjectOption" name="isNewSubject" value="currentSubject"
+                                        <input type="radio" id="currentSubjectOption" name="isNewSubject" value="currentSubject" data-testid="current-subject-input"
                                                 onChange={handleIsNewSubject} className="cursor-pointer"/>
                                         <label htmlFor="currentSubjectOption" className="cursor-pointer">
                                             Current subject folder:
                                         </label>                                            
                                         {!isToNewSubject && (
                                             <div className="flex">
-                                                <select id="currentSubjectSelect" name="currentSubjectSelect" value={subject}
+                                                <select id="currentSubjectSelect" name="currentSubjectSelect" data-testid="current-subject-input" value={subject}
                                                         onChange={handleSubjectChange}
                                                         className="w-50 bg-tertiary rounded-md drop-shadow-2xl cursor-pointer">   
                                                     <option value="chooseSubject">— Choose Subject —</option>
@@ -350,7 +350,7 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
                                     bg-tertiary hover:bg-tertiary/75 cursor-pointer" disabled={uploading}>                                   
                                 Cancel
                             </button>
-                            <button type="submit" className= {
+                            <button type="submit" data-testid="next-button" className= {
                                 `px-4 py-2 rounded-md ${
                                     !paper || uploading || subject.trim() === "" ? 
                                     "bg-accent cursor-not-allowed" : "bg-accent hover:bg-accent/75 cursor-pointer"                                      

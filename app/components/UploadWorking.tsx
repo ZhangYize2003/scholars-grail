@@ -13,7 +13,6 @@ export default function UploadingWorking({ onUploadComplete }: WorkingFileProps)
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSubmit = async (working: File) => {
-        console.log(working);
         if (!working) {
             return;
         }
@@ -100,6 +99,7 @@ export default function UploadingWorking({ onUploadComplete }: WorkingFileProps)
                 <div className="flex items-center justify-center w-full ">
                     <label
                         htmlFor="dropzone-file"
+                        data-testid="dropzone"
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                         className="flex flex-col items-center justify-center w-full h-98 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600"
