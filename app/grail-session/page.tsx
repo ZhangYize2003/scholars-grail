@@ -120,7 +120,7 @@ export default function Page() {
       fetchFiles();
       fetchWorkingText(working);
     }
-  }, [working, fetchFiles, fetchWorkingText]);
+  }, [working]);
 
   const orderBoundingBox= useCallback(async () =>{
     try {
@@ -345,20 +345,20 @@ export default function Page() {
       fetchFiles();
       fetchPdfText();
     }
-  }, [subject, paperFolder, fetchFiles, fetchPdfText]);
+  }, [subject, paperFolder]);
 
   useEffect(() => {
     if (pdfText) {
       orderBoundingBox();
       generateHint();
     }
-  }, [pdfText, orderBoundingBox, generateHint]);
+  }, [pdfText]);
 
   useEffect(() => {
     if (workingsText) {
       markWorkings();
     }
-  }, [workingsText, markWorkings]);
+  }, [workingsText]);
 
   return (
     <div className="min-h-screen text-white pb-20 px-6">
