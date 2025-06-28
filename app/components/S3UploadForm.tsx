@@ -9,7 +9,7 @@ interface props {
 };
 
 const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
-    const {subject, setSubject, paperFolder, setPaperFolder, paper, setPaper} = useRevisionContext();
+    const {subject, setSubject, paperFolder, setPaperFolder, paper, setPaper, setWorking} = useRevisionContext();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isFromRepository, setFromRepository] = useState(true);
     const [isToNewSubject, setToNewSubject] = useState(true);
@@ -181,6 +181,7 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
         setSubject("");
         setPaperFolder("");
         setPaper(null);
+        setWorking(null);
         setFromRepository(true);
         setToNewSubject(true);     
         setUploading(false);
