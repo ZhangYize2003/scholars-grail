@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 
 type S3Folder = {
   prefix: string;
-  files: any[];
 };
 
 interface MoveSelectedFolderProps {

@@ -14,7 +14,6 @@ const bucketName = process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME!;
 
 // Create a regex to pick up start of Question -> Bounding Box
 const questionRegex = /^(question|ques)?\s*\d+[\.\):]?/i;
-const optionRegex = /^[A-D]\s*[\.\)]\s*/i;
 
 const s3Client = new S3Client({
   region,
@@ -33,8 +32,28 @@ type BoundingBox = {
   Height: number;
 };
 
+type TextractBlock = {
+  Id: string;
+  BlockType: string;
+  Text?: string;
+  Geometry?: {
+    BoundingBox: BoundingBox;
+  };
+  Relationships?: Array<{
+    Type: string;
+    Ids: string[];
+  }>;
+  Page?: number;
+};
+
+type QuestionData = {
+  text: string;
+  boundingBox: BoundingBox;
+  page: number;
+};
+
 // Combine Ques + Options
-function mergeBoundingBoxes(boxes: any[]) {
+function mergeBoundingBoxes(boxes: BoundingBox[]): BoundingBox {
   const minX = Math.min(...boxes.map(b => b.Left));
   const minY = Math.min(...boxes.map(b => b.Top));
   const maxX = Math.max(...boxes.map(b => b.Left + b.Width));
@@ -62,10 +81,10 @@ async function startAsyncTextDetection(key: string): Promise<string> {
 // Use jobid to repeatedly check whether textract is complete
 async function getAsyncTextDetectionResult(
   jobId: string
-): Promise<{ text: string; boundingBoxes: { text: string; boundingBox: any }[] }> {
+): Promise<{ text: string; boundingBoxes: QuestionData[] }> {
   let nextToken: string | undefined = undefined;
   let finished = false;
-  const allBlocks: any[] = [];
+  const allBlocks: TextractBlock[] = [];
 
   while (!finished) {
     const command = new GetDocumentTextDetectionCommand({
@@ -75,7 +94,7 @@ async function getAsyncTextDetectionResult(
     const response: GetDocumentTextDetectionCommandOutput = await textractClient.send(command);
 
     if (response.JobStatus === "SUCCEEDED") {
-      allBlocks.push(...(response.Blocks ?? []));
+      allBlocks.push(...(response.Blocks as TextractBlock[] ?? []));
       if (response.NextToken) {
         nextToken = response.NextToken;
       } else {
@@ -88,17 +107,17 @@ async function getAsyncTextDetectionResult(
     }
   }
 
-  const blockMap = new Map();
+  const blockMap = new Map<string, TextractBlock>();
   allBlocks.forEach(block => blockMap.set(block.Id, block));
 
-  function getWordBoundingBoxes(lineBlock: any) {
+  function getWordBoundingBoxes(lineBlock: TextractBlock): BoundingBox[] {
     const wordBoxes: BoundingBox[] = [];
     if (lineBlock.Relationships) {
       for (const rel of lineBlock.Relationships) {
         if (rel.Type === "CHILD") {
           rel.Ids.forEach((id: string) => {
             const child = blockMap.get(id);
-            if (child.BlockType === "WORD" && child.Geometry?.BoundingBox) {
+            if (child?.BlockType === "WORD" && child.Geometry?.BoundingBox) {
               wordBoxes.push(child.Geometry.BoundingBox);
             }
           });
@@ -109,16 +128,16 @@ async function getAsyncTextDetectionResult(
   }
 
   let started = false;
-  const allQuestions = [];
+  const allQuestions: QuestionData[] = [];
   let collecting = false;
-  let currentBoxes: any[] = [];
+  let currentBoxes: BoundingBox[] = [];
   let currentText = "";
   let currentPage = 1;
 
   for (const block of allBlocks) {
     if (block.BlockType === "LINE" && block.Text && block.Geometry?.BoundingBox) {
       const text = block.Text.trim();
-      const pageNumber = block.Page;
+      const pageNumber = block.Page || 1
       const wordBoxes = getWordBoundingBoxes(block);
 
       if (!started && questionRegex.test(text)) {
@@ -127,6 +146,7 @@ async function getAsyncTextDetectionResult(
         collecting = true;
         currentText = text + "\n";
         currentBoxes = wordBoxes;
+        currentPage = pageNumber;
         continue;
       }
 
@@ -193,7 +213,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
 
     let combinedText = "";
-    const allBoundingBoxes: { file: string; boxes: { text: string; boundingBox: any }[] }[] = [];
+    const allBoundingBoxes: { file: string; boxes: QuestionData[] }[] = [];
 
     // Process each file in the repo
     for (const file of pdfFiles) {

@@ -4,7 +4,6 @@ import { render, fireEvent, waitFor, screen } from "@testing-library/react";
 import S3UploadForm from "../../components/S3UploadForm";
 import { RevisionProvider } from "../../components/RevisionContext";
 import userEvent from '@testing-library/user-event';
-import S3UploadForm2 from "@/app/components/S3UploadForm2";
 
 beforeEach(() => {
   localStorage.setItem("uid", "test-user");
@@ -54,17 +53,19 @@ const createMockFile = (name: string, type: string, content: string) => {
   Object.defineProperty(file, 'size', { value: blob.size });
   return file;
 };
+
 // Helper -> Uploads pdf
 async function uploadPdfFromDevice(file: File, fileContent: string) {
-  const readerMock = {
+  const readerMock: Partial<FileReader> = {
     result: fileContent,
-    onload: null as any,
-    readAsText: jest.fn(function () {
+    onload: null,
+    readAsText: function () {
+      // @ts-expect-error bc onload exists
       this.onload();
-    }),
+    },
   };
 
-  global.FileReader = jest.fn(() => readerMock) as any;
+  global.FileReader = jest.fn(() => readerMock) as unknown as typeof FileReader;
 
   render(
     <RevisionProvider>
@@ -145,9 +146,6 @@ test("user can create new subject and proceed to modal 2", async () => {
   await waitFor(() => {
     expect(screen.getByText(`File uploaded successfully!`)).toBeInTheDocument();
   });
-  
-  expect(setOpenModal).toBeFalsy;
-  expect(setOpenModal2).toBeTruthy;
 });
 
 test("user can select an existing subject", async () => {

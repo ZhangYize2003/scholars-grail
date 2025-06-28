@@ -2,7 +2,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {generateHints} from '../../utils/generateHints'
 import UploadWorking from '../../components/UploadWorking';
-import Page from '../../grail-session/page';
 
 import { act } from 'react';
 

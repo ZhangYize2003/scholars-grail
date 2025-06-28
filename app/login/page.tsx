@@ -187,7 +187,7 @@ export default function SignInPage() {
             className="flex items-center gap-2 button_format"
             onClick={() => signInWithGoogle()}
             >
-            <img
+            <Image
               src="https://www.svgrepo.com/show/475656/google-color.svg"
               alt="Google"
               className="h-[18px] w-[18px]"

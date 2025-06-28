@@ -1,6 +1,5 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
-import { Readable } from "stream";
 
 const region = process.env.NEXT_PUBLIC_AWS_S3_REGION!;
 const accessKeyId = process.env.NEXT_PUBLIC_AWS_S3_ACCESS_KEY_ID!;

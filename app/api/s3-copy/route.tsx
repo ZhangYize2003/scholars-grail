@@ -4,7 +4,6 @@ import { S3Client, CopyObjectCommand, ListObjectsV2Command } from "@aws-sdk/clie
 const region = process.env.NEXT_PUBLIC_AWS_S3_REGION!;
 const accessKeyId = process.env.NEXT_PUBLIC_AWS_S3_ACCESS_KEY_ID!;
 const secretAccessKey = process.env.NEXT_PUBLIC_AWS_S3_SECRET_ACCESS_KEY!;
-const bucketName = process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME!;
 
 const s3Client = new S3Client({
     region,

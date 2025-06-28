@@ -36,8 +36,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ message: "Lambda invoked", result: lambdaPayload });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Lambda invocation error:", error);
-    return NextResponse.json({ error: "Lambda invocation failed", details: error.message }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Unkown error";
+    return NextResponse.json({ error: "Lambda invocation failed", details: errorMessage }, { status: 500 });
   }
 }

@@ -1,18 +1,16 @@
 "use client"
-import { useState, useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Upload } from 'lucide-react';
 import { useRevisionContext } from "../components/RevisionContext";
 
 export default function UploadingWorking() {
     const {subject,  paperFolder, working, setWorking} = useRevisionContext();    
-    const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSubmit = async (working: File) => {
         if (!working) {
             return;
         }
-        setUploading(true);
         const uid = localStorage.getItem("uid");
         if (!uid) {
             return;
@@ -37,10 +35,8 @@ export default function UploadingWorking() {
             console.log("Working uploaded successfully:", data);
             window.dispatchEvent(new CustomEvent("foldersUpdated"));
             setWorking(working);
-            setUploading(false);
         } catch (error) {
             console.error("Error uploading Working:", error);
-            setUploading(false);
         }
     };
 

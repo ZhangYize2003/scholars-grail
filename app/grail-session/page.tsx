@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Header from "../home/header";
 import UploadWorking from "../components/UploadWorking";
 import RevisionModal from "../components/RevisionModal";
@@ -39,7 +39,7 @@ type S3File = {
 };
 
 export default function Page() {
-  const {subject, setSubject, paperFolder, setPaperFolder, paper, setPaper, working, setWorking} = useRevisionContext();
+  const {subject, paperFolder, working} = useRevisionContext();
 
   const [pdfText, setPdfText] = useState<string>("");
   const [workingsText, setWorkingsText] = useState<string>("");
@@ -52,14 +52,12 @@ export default function Page() {
   const [selectedTips, setSelectedTips] = useState<number | null>(null);
   const [hardQues, setHardQues] = useState<number[]>([]);
   const [boundingBoxes, setBoundingBoxes] = useState<QuestionBoundingBox[]>([]);
-  const [parsing, setParsing] = useState<boolean>(false);
   const [adding, setAdding] = useState<boolean>(false);
   const [files, setFiles] = useState<S3File[]>([]);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
   const [noOfFiles, setNoOfFiles] = useState<number | null>(null);
-  const [refreshkey, setRefreshkey] = useState(0); 
   
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     const uid = localStorage.getItem("uid");
     if (!uid || !subject || !paperFolder) return;
 
@@ -76,9 +74,9 @@ export default function Page() {
     setFiles(filteredFiles);
     setNoOfFiles(data.KeyCount);
     console.log(noOfFiles);
-  };
+  }, [subject, paperFolder]);
 
-  const fetchPdfText = async () => {
+  const fetchPdfText = useCallback(async () => {
     const uid = localStorage.getItem("uid");
     if (!uid || !subject || !paperFolder) return;
     setMarked(null);
@@ -90,7 +88,6 @@ export default function Page() {
     setOutput(null);
     setSelectedHint(null);
     setSelectedTips(null);
-    setParsing(true);
 
     const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
     const url = `/api/read-pdf?uid=${uid}&prefix=${encodeURIComponent(prefix)}`;
@@ -101,10 +98,10 @@ export default function Page() {
     console.log(data.boundingBoxes)
     setBoundingBoxes(data.boundingBoxes);
     setPdfText(data.text);
-    setParsing(false);
-  };
 
-  const fetchWorkingText = async (file: File) => {
+  }, [subject, paperFolder]);
+
+  const fetchWorkingText = useCallback(async (file: File) => {
     if (!file) return;
     setMarking(true);
     const uid = localStorage.getItem("uid");
@@ -115,7 +112,7 @@ export default function Page() {
     const data = await res.json();
     setWorkingsText(data.text);
     console.log(data.text);
-  };
+  }, [subject, paperFolder]);
 
   useEffect(() => {
     if (working) {
@@ -125,7 +122,7 @@ export default function Page() {
     }
   }, [working]);
 
-  const orderBoundingBox= async () =>{
+  const orderBoundingBox= useCallback(async () =>{
     try {
       setLoading(true);
       setError(null);
@@ -178,9 +175,9 @@ export default function Page() {
       console.error(error);
       setError("Error occurred while generating content.");
     }
-  }
+  }, [pdfText, boundingBoxes]); 
 
-  const generateHint = async () => {
+  const generateHint = useCallback(async () => {
     try {
       setError(null);
       setOutput(null);
@@ -223,7 +220,7 @@ export default function Page() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pdfText]);
 
   const markWorkings = async () => {
     try {
@@ -337,7 +334,6 @@ export default function Page() {
       const cropData = await cropResponse.json();
       console.log("Crop PDF result:", cropData);
       
-      setRefreshkey((prevKey) => prevKey + 1);
     } catch(error){
       console.error("Error during file operation:", error);
     }
@@ -388,12 +384,12 @@ export default function Page() {
             <div>              
               {marked && paperFolder !== "Challenging Questions" && (
               <div className="bg-black rounded p-4 shadow-lg">
-                <h2 className="font-bold mb-4 text-white text-lg">Add these to {subject}'s Challenging questions Repo.</h2>
+                <h2 className="font-bold mb-4 text-white text-lg">Add these to {subject}&apos;s Challenging questions Repo.</h2>
 
                 <div className="flex flex-wrap gap-3 justify-center mt-4">
                   {Array.from({ length: marked.numberOfQuestions }, (_, i) => {
                     const qNum = i + 1;
-                    let isHard = hardQues.includes(qNum);
+                    const isHard = hardQues.includes(qNum);
                     return (
                       <div key={`question-wrapper-${qNum}`}>
                         <div className="flex flex-col items-center">
