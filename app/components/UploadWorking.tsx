@@ -102,7 +102,7 @@ export default function UploadingWorking({ onUploadComplete }: WorkingFileProps)
                         data-testid="dropzone"
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
-                        className="flex flex-col items-center justify-center w-full h-98 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600"
+                        className="flex flex-col items-center justify-center w-full h-98 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600"
                     >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                             <Upload className="text-blue-600 w-9 h-9"/>

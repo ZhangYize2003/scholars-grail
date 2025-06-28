@@ -39,7 +39,8 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
 
     const handleSubjectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const folderPrefix = e.target.value;
-        setSubject(folderPrefix);
+        const subjectName = folderPrefix.split('/').filter(Boolean).pop()
+        setSubject(subjectName || "");
         console.log("Subject:", subject);
 
         if (isFromRepository) {
@@ -59,8 +60,8 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
 
     const handlePaperSelection = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const paperPrefix = e.target.value; // Path is subject/paper folder/paper (paper folder and paper have the same name)
-        setPaperFolder(paperPrefix);
         const fileName = paperPrefix.split("/").filter(Boolean).pop();
+        setPaperFolder(fileName || "");
 
         const uid = localStorage.getItem("uid");
         if (!uid) return;
@@ -139,9 +140,8 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
             if (isToNewSubject && subject.trim() !== "") {
                 formData.append("subject", subject.trim());
             } else if (!isToNewSubject) {
-                const parts = subject.split('/').filter(Boolean);
-                const subjectName = parts[parts.length - 1];
-                formData.append("subject", subjectName);
+                const subjectName = subject.split('/').filter(Boolean).pop();
+                formData.append("subject", subjectName || "");
             }
         }
 
