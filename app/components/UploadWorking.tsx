@@ -3,11 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Upload } from 'lucide-react';
 import { useRevisionContext } from "../components/RevisionContext";
 
-interface WorkingFileProps {
-  onUploadComplete: (file: File) => void;
-}
-
-export default function UploadingWorking({ onUploadComplete }: WorkingFileProps) {
+export default function UploadingWorking() {
     const {subject,  paperFolder, working, setWorking} = useRevisionContext();    
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +36,7 @@ export default function UploadingWorking({ onUploadComplete }: WorkingFileProps)
             const data = await response.json();
             console.log("Working uploaded successfully:", data);
             window.dispatchEvent(new CustomEvent("foldersUpdated"));
-            onUploadComplete(working);
+            setWorking(working);
             setUploading(false);
         } catch (error) {
             console.error("Error uploading Working:", error);
@@ -59,13 +55,11 @@ export default function UploadingWorking({ onUploadComplete }: WorkingFileProps)
                 if (pageCount > 10) {
                     alert("You can only upload PDF files with 10 pages or fewer.");
                 } else {
-                    setWorking(file);
                     handleSubmit(file);
                 }
             };
             fileReader.readAsText(file);
         } else {
-            setWorking(file);
             handleSubmit(file);
         }
     };

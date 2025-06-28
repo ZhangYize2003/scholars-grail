@@ -33,12 +33,14 @@ const S3UploadForm2 = ({setOpenModal2}: props) => {
                         e.target.value = "";
                     } else {
                         setWorking(selectedFile);
+                        console.log("Working:", working);
                     }
                 };
                 fileReader.readAsText(selectedFile);
             } else {
                 //if not pdf, can restrict to only pdf files later
                 setWorking(selectedFile);
+                console.log("Working:", working);
             }
         } else {
             setWorking(null);

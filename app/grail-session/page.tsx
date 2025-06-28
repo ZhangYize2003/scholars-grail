@@ -119,12 +119,9 @@ export default function Page() {
 
   useEffect(() => {
     if (working) {
-      const uid = localStorage.getItem("uid");
-      if (!uid) {
-        return;
-      }
       console.log(working.name);
       fetchFiles();
+      fetchWorkingText(working);
     }
   }, [working]);
 
@@ -371,7 +368,7 @@ export default function Page() {
     <div className="min-h-screen text-white pb-20 px-6">
       <Header />
       <h1 className="pt-20 text-gray-200">Grail Session</h1>
-      {subject.trim() === "" && paperFolder.trim() === "" && (
+      {!output && (
         <RevisionModal/>
       )}
      
@@ -386,12 +383,7 @@ export default function Page() {
           <div className="w-1/2 h-120 bg-black rounded p-4 shadow-lg">
             <div>
               <h2 className="font-bold mb-4 text-white text-lg">Upload Your Workings Here</h2>
-              <UploadWorking  
-                onUploadComplete={(file) => {
-                  fetchFiles();
-                  fetchWorkingText(file);
-                }}
-              />
+              <UploadWorking/>
             </div>
             <div>              
               {marked && paperFolder !== "Challenging Questions" && (
