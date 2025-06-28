@@ -66,6 +66,7 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
         if (!uid) return;
 
         console.log("Paper folder:", paperFolder);
+        console.log("Paper:", fileName);
 
         const response = await fetch(`/api/s3-render?uid=${uid}&prefix=${paperPrefix}`);
         if (!response.ok) {
@@ -81,6 +82,7 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
         console.log("subjectFiles:", paperList);
 
         if (paperKey) {
+            console.log("The selected paper: ", paperKey);
             setPaper(paperKey)
             console.log("Paper:", paper);
         }
@@ -205,16 +207,6 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
     const handleButtonClick = () => {
         fileInputRef.current?.click();
     };
-
-    const handleNext = () => {
-        if (isFromRepository) {
-            setOpenModal(false);
-            setOpenModal2(true);
-        }
-        else {
-            return;
-        }
-    }
 
     return(
         <div className="fixed inset-0 backdrop-blur-sm z-40">
@@ -358,7 +350,7 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
                                     bg-tertiary hover:bg-tertiary/75 cursor-pointer" disabled={uploading}>                                   
                                 Cancel
                             </button>
-                            <button type={isFromRepository ? "button" : "submit"} data-testid="next-button" onClick={handleNext} className= {
+                            <button type="submit" data-testid="next-button" className= {
                                 `px-4 py-2 rounded-md ${
                                     !paper || uploading || subject.trim() === "" ? 
                                     "bg-accent cursor-not-allowed" : "bg-accent hover:bg-accent/75 cursor-pointer"                                      
