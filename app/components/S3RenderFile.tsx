@@ -42,13 +42,20 @@ function getParentPrefix(prefix: string, rootPrefix: string) {
 }
 
 export default function S3RenderFile() {
-  const uid = localStorage.getItem("uid");
-  const rootPrefix = `usersData/${uid}/`;
+  const [uid, setUid] = useState<string | null>(null);
+  
+  useEffect(() => {
+    setUid(localStorage.getItem("uid"));
+  }, []);
+  const rootPrefix = uid ? `usersData/${uid}/` : "";
 
   const [folders, setFolders] = useState<S3Folder[]>([]);
   const [currentPrefix, setCurrentPrefix] = useState<string>(rootPrefix);
-
   useEffect(() => {
+    if (!uid) {
+      return;
+    }
+
     const handleFoldersUpdated = () => {
       getDocument(currentPrefix).then((data) => {
         setFolders(data.folders || []);

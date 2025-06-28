@@ -74,7 +74,7 @@ export default function Page() {
     setFiles(filteredFiles);
     setNoOfFiles(data.KeyCount);
     console.log(noOfFiles);
-  }, [subject, paperFolder]);
+  }, [subject, paperFolder, noOfFiles]);
 
   const fetchPdfText = useCallback(async () => {
     const uid = localStorage.getItem("uid");
@@ -120,7 +120,7 @@ export default function Page() {
       fetchFiles();
       fetchWorkingText(working);
     }
-  }, [working]);
+  }, [working, fetchFiles, fetchWorkingText]);
 
   const orderBoundingBox= useCallback(async () =>{
     try {
@@ -345,20 +345,20 @@ export default function Page() {
       fetchFiles();
       fetchPdfText();
     }
-  }, [subject, paperFolder]);
+  }, [subject, paperFolder, fetchFiles, fetchPdfText]);
 
   useEffect(() => {
     if (pdfText) {
       orderBoundingBox();
       generateHint();
     }
-  }, [pdfText]);
+  }, [pdfText, orderBoundingBox, generateHint]);
 
   useEffect(() => {
     if (workingsText) {
       markWorkings();
     }
-  }, [workingsText]);
+  }, [workingsText, workingsText, markWorkings]);
 
   return (
     <div className="min-h-screen text-white pb-20 px-6">
