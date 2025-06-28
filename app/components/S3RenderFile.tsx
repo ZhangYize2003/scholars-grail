@@ -49,6 +49,12 @@ export default function S3RenderFile() {
   }, []);
   const rootPrefix = uid ? `usersData/${uid}/` : "";
 
+  useEffect(() => {
+    if (uid) {
+      setCurrentPrefix(`usersData/${uid}/`);
+    }
+  }, [uid]);
+
   const [folders, setFolders] = useState<S3Folder[]>([]);
   const [currentPrefix, setCurrentPrefix] = useState<string>(rootPrefix);
   useEffect(() => {
@@ -67,7 +73,7 @@ export default function S3RenderFile() {
     return () => {
       window.removeEventListener("foldersUpdated", handleFoldersUpdated);
     };
-  }, [currentPrefix]);
+  }, [uid, currentPrefix]);
 
   const handleDeleteFolder = async (key: string) => {
     await fetch(`/api/s3-delete?key=${encodeURIComponent(key)}`, {

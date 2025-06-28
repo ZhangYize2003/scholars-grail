@@ -358,7 +358,7 @@ export default function Page() {
     if (workingsText) {
       markWorkings();
     }
-  }, [workingsText, workingsText, markWorkings]);
+  }, [workingsText, markWorkings]);
 
   return (
     <div className="min-h-screen text-white pb-20 px-6">
