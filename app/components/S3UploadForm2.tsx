@@ -84,7 +84,7 @@ const S3UploadForm2 = ({setOpenModal2}: props) => {
                 setSuccess(false);
                 setOpenModal2(false);
                 router.replace("/grail-session");            
-            }, 1500);
+            }, 1000);
         } 
         catch (error) {
             console.error("Error uploading file:", error);

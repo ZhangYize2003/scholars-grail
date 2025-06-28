@@ -167,7 +167,7 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
                 setSuccess(false);
                 setOpenModal(false);
                 setOpenModal2(true);
-            }, 1500);
+            }, 1000);
 
         } 
         catch (error) {
