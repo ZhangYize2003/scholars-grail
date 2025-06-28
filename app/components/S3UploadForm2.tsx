@@ -46,53 +46,47 @@ const S3UploadForm2 = ({setOpenModal2}: props) => {
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
-        if (isPaperCompleted) {
-            e.preventDefault();
-            if (!working) {
-                return;
-            }
-            setUploading(true);
-            console.log("paper folder:", paperFolder);
-
-            const uid = localStorage.getItem("uid");
-            const formData = new FormData();
-            const paperFolderName = paperFolder.split("/").filter(Boolean).pop() || ""; 
-
-            if (uid) {
-                formData.append("uid", uid);
-                formData.append("subject", subject);
-                formData.append("paper", working);
-                formData.append("paperFolder", paperFolderName);
-            }
-
-            try {
-                const response = await fetch("/api/s3-upload", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    throw new Error("File upload failed");
-                }
-                const data = await response.json();
-                console.log("File uploaded successfully:", data);
-                setUploading(false);
-                setSuccess(true);
-                window.dispatchEvent(new CustomEvent("foldersUpdated"));
-                setTimeout(() => {
-                    setSuccess(false);
-                    setOpenModal2(false);
-                    router.replace("/grail-session");            
-                }, 1500);
-            } 
-            catch (error) {
-                console.error("Error uploading file:", error);
-                setUploading(false);
-            }
+        e.preventDefault();
+        if (!working) {
+            return;
         }
-        else {
-            setOpenModal2(false);
-            router.replace("/grail-session");
+        setUploading(true);
+        console.log("paper folder:", paperFolder);
+
+        const uid = localStorage.getItem("uid");
+        const formData = new FormData();
+        const paperFolderName = paperFolder.split("/").filter(Boolean).pop() || ""; 
+
+        if (uid) {
+            formData.append("uid", uid);
+            formData.append("subject", subject);
+            formData.append("paper", working);
+            formData.append("paperFolder", paperFolderName);
+        }
+
+        try {
+            const response = await fetch("/api/s3-upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error("File upload failed");
+            }
+            const data = await response.json();
+            console.log("File uploaded successfully:", data);
+            setUploading(false);
+            setSuccess(true);
+            window.dispatchEvent(new CustomEvent("foldersUpdated"));
+            setTimeout(() => {
+                setSuccess(false);
+                setOpenModal2(false);
+                router.replace("/grail-session");            
+            }, 1500);
+        } 
+        catch (error) {
+            console.error("Error uploading file:", error);
+            setUploading(false);
         }
     };
 
@@ -111,7 +105,18 @@ const S3UploadForm2 = ({setOpenModal2}: props) => {
 
     const handlePaperCompletion = () => {
         setIsPaperCompleted(!isPaperCompleted);
+        setWorking(null);
     };
+
+    const handleNext = () => {
+        if (isPaperCompleted) {
+            return;
+        }
+        else {
+            setOpenModal2(false);
+            router.replace("/grail-session");
+        }
+    }
     
     return (
         <div className="fixed inset-0 backdrop-blur-sm z-40">
@@ -177,9 +182,9 @@ const S3UploadForm2 = ({setOpenModal2}: props) => {
                                     bg-tertiary hover:bg-tertiary/75 cursor-pointer" disabled={uploading}>                                   
                                 Cancel
                             </button>
-                            <button type="submit" className= {
+                            <button type={isPaperCompleted ? "submit" : "button"} onClick={handleNext} className= {
                                 `px-4 py-2 rounded-md ${
-                                    !working || uploading ? 
+                                    (isPaperCompleted && !working ) || uploading ? 
                                     "bg-accent cursor-not-allowed" : "bg-accent hover:bg-accent/75 cursor-pointer"                                      
                                 }`}
                                 disabled={uploading}>
