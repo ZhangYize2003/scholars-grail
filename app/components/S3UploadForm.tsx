@@ -179,7 +179,8 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
     const resetModal = () => {
         setOpenModal(false);
         setSubject("");
-        setPaper(null); 
+        setPaperFolder("");
+        setPaper(null);
         setFromRepository(true);
         setToNewSubject(true);     
         setUploading(false);
