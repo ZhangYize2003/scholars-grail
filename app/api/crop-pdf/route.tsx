@@ -11,13 +11,13 @@ const lambdaClient = new LambdaClient({
 
 export async function POST(request: NextRequest) {
   try {
-    const { bucket, uid, subject, subfolder } = await request.json();
+    const { bucket, uid, subject, paperFolder } = await request.json();
 
     const payload = {
       bucket,
       uid,
       subject,
-      subfolder,
+      paperFolder,
     };
     console.log("Payload:", payload);
 
