@@ -23,7 +23,7 @@ export function useRevisionContext() {
   return revision;
 }
 
-export function RevisionProvider({
+export default function RevisionProvider({
   children,
 }: Readonly<{
   children: React.ReactNode;
