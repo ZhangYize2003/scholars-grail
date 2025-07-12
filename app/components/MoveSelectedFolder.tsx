@@ -1,4 +1,4 @@
-import { Folders, X, MoveUpRight } from "lucide-react";
+import { FiFolder, FiX, FiCopy } from "react-icons/fi";
 import { useState, useEffect } from "react";
 
 type S3Folder = {
@@ -84,31 +84,31 @@ export default function MoveSelectedFolder({ rootPrefix, folderPrefix }: MoveSel
   };
 
   return (
-    <>
+    <div>
       <button
-        className="text-blue-400 hover:text-blue-600"
+        className="flex items-center text-accent hover:text-accent/75 cursor-pointer"
         title="Copy folder"
         onClick={(e) => {
           e.stopPropagation();
           setIsCopyModalOpen(true);
-        }}
-      >
-        <MoveUpRight />
+        }}>
+      <FiCopy className="w-5 h-5"/>
       </button>
+
       {isCopyModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 text-main">
+          <div className="bg-tertiary p-6 rounded-lg shadow-xl max-w-md w-full">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-200">
+              <h3 className="text-xl font-semibold">
                 Select Destination Folder
               </h3>
               <button
                 onClick={async () => {
                   setIsCopyModalOpen(false);
                 }}
-                className="text-gray-400 hover:text-gray-200"
+                className="hover:bg-tertiary rounded-full p-2 transition-all"
               >
-                <X className="w-6 h-6" />
+                <FiX size={20}/>
               </button>
             </div>
 
@@ -122,7 +122,7 @@ export default function MoveSelectedFolder({ rootPrefix, folderPrefix }: MoveSel
                   }}
                   className="w-full text-left p-2 hover:bg-gray-700 rounded flex items-center gap-2 mb-2"
                 >
-                  <Folders className="w-4 h-4 text-yellow-400" />
+                  <FiFolder className="w-4 h-4 text-amber-300" />
                   <span className="text-gray-200">
                     {folder.prefix.replace(rootPrefix, "").split("/")[0]}
                   </span>
@@ -132,6 +132,6 @@ export default function MoveSelectedFolder({ rootPrefix, folderPrefix }: MoveSel
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

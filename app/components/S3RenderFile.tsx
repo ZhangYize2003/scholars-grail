@@ -92,8 +92,8 @@ export default function S3RenderFile() {
 
   if (isLoading) {
     return (
-      <div className="bg-neutral-800 border-r border-gray-800 p-3 overflow-y-auto w-200 h-[500px] text-gray-100 text-xl rounded-lg shadow mx-auto">
-        <div className="text-gray-500 py-8 text-center">
+      <div className="bg-secondary border border-primary p-3 overflow-y-auto w-4xl h-[calc(100vh-200px)] text-main/75 text-xl rounded-lg shadow mx-auto">
+        <div className="py-8 text-center">
           Loading...
         </div>
       </div>
@@ -102,8 +102,8 @@ export default function S3RenderFile() {
 
   if (isError) {
     return (
-      <div className="bg-neutral-800 border-r border-gray-800 p-3 overflow-y-auto w-200 h-[500px] text-gray-100 text-xl rounded-lg shadow mx-auto">
-        <div className="text-error py-8 text-center">
+      <div className="bg-secondary border border-primary p-3 overflow-y-auto w-4xl h-[calc(100vh-200px)] text-error/75 text-xl rounded-lg shadow mx-auto">
+        <div className="py-8 text-center">
           Error: Failed to load repository. Please refresh and try again.
         </div>      
       </div>
@@ -111,50 +111,76 @@ export default function S3RenderFile() {
   }
 
   return (
-    <div className="bg-neutral-800 border-r border-gray-800 p-3 overflow-y-auto w-200 h-[500px] text-gray-100 text-xl rounded-lg shadow mx-auto">
-      <div className="flex items-center mb-2">
+    <div className="bg-secondary border border-primary py-3 px-3 overflow-y-auto w-4xl h-[calc(100vh-200px)] text-main text-base rounded-lg shadow mx-auto">
+      <div className="flex items-center px-3 mb-3">
         {currentPrefix !== rootPrefix && (
           <button
-            className="mr-2 text-gray-300 hover:text-white"
+            className="hover:text-main/75 cursor-pointer mr-2"
             onClick={() => {handleBack()}}
             title="Back">
-            <FiArrowLeft className="w-6 h-6" />
+            <FiArrowLeft className="w-5 h-5" />
           </button>
         )}
-        <span className="font-bold text-gray-200">
-          {currentPrefix == rootPrefix ? "" : currentPrefix.split("/").filter(Boolean).pop()}
+        <span className="font-bold">
+          {currentPrefix == rootPrefix ? "Subjects" : currentPrefix.split("/").filter(Boolean).pop()}
         </span>
       </div>
       {folders.length === 0 ? (
-        <div className="text-gray-500 py-8 text-center">No Papers Here</div>
+        <div>
+          <span className="flex items-center justify-between px-3">
+            <div>Name</div>
+            <div className="pl-53">| Date added</div>
+            <div className="pr-35">| Size</div> 
+          </span>
+          <div className="py-8 text-center text-main/75 text-xl">No Papers Here</div>
+        </div>
       ) : (
-        <ul className="pl-2">
-          {folders.map((folder) => (
-            <li key={folder.prefix} className="flex items-center justify-between">
-              <div
-                className="flex items-center flex-grow cursor-pointer hover:bg-neutral-900 rounded px-2 py-0.5"
-                onClick={() => {handleForward(folder.prefix)}}>
-              <FiFolder className="w-4 h-4 mr-1 text-main" />
-              <span className="text-gray-100 text-left">
-                {folder.prefix.split("/").filter(Boolean).pop()}
-              </span>
-              </div>
-                {currentPrefix !== rootPrefix && (
-                  <div className="flex items-center gap-2">
-                    <CopySelectedFolder
-                      rootPrefix={rootPrefix}
-                      folderPrefix={folder.prefix}/>
-                  </div>
-                )}
-                <button
-                  className="text-error hover:text-red-600 flex items-center gap-2 cursor-pointer"
-                  title="Delete folder"
-                  onClick={() => {deleteFolderMutation.mutate(folder.prefix)}}>
-                <FiTrash2 className="w-5 h-5" />
-                </button>
-            </li>
-          ))}
-        </ul>
+        <div>
+          <span className="flex items-center justify-between px-3">
+            <div>Name</div>
+            <div className="pl-53">| Date added</div>
+            <div className="pr-35">| Size</div> 
+          </span>
+          <ul>
+            {folders.map((folder) => {
+              const fileName = folder.prefix.split("/").filter(Boolean).pop()!;
+              const displayFileName = fileName.length > 40 ? fileName.slice(0, 40) + "…" : fileName; // I think max is 50 char
+              return(
+              <li key={folder.prefix} className="grid grid-cols-[1fr_250px_120px_50px] items-center cursor-pointer 
+                                                  hover:bg-tertiary border-b-2 border-primary/50 px-3 py-1"
+                  onClick={() => {handleForward(folder.prefix)}}>
+                <div className="flex items-center my-1">
+                  <FiFolder className="w-5 h-5 mr-3 text-amber-300" />
+                  <span className="text-left">
+                    {displayFileName}
+                  </span>
+                </div>
+
+                <span className="">-</span>
+                <span className="">-</span>
+
+                <div className="flex items-center gap-2 cursor-pointer">
+                  {currentPrefix !== rootPrefix && (
+                    <div onClick={(e) => {e.stopPropagation();}}>
+                      <CopySelectedFolder
+                        rootPrefix={rootPrefix}
+                        folderPrefix={folder.prefix}/>
+                    </div>
+                  )}
+
+                  <button
+                    className="text-error hover:text-error/75 cursor-pointer"
+                    title="Delete folder"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Need this to prevent cd into the folder
+                      deleteFolderMutation.mutate(folder.prefix)}}>
+                  <FiTrash2 className="w-5 h-5"/>
+                  </button>
+                </div>           
+              </li>
+            )})}
+          </ul>
+        </div>
       )}    
     </div>
   );
