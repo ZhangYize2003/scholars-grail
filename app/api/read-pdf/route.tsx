@@ -12,9 +12,6 @@ const accessKeyId = process.env.NEXT_PUBLIC_AWS_S3_ACCESS_KEY_ID!;
 const secretAccessKey = process.env.NEXT_PUBLIC_AWS_S3_SECRET_ACCESS_KEY!;
 const bucketName = process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME!;
 
-// Create a regex to pick up start of Question -> Bounding Box
-const questionRegex = /^(question|ques)?\s*\d+[\.\):]?/i;
-
 const s3Client = new S3Client({
   region,
   credentials: { accessKeyId, secretAccessKey },
@@ -46,7 +43,7 @@ type TextractBlock = {
   Page?: number;
 };
 
-type QuestionData = {
+type LineData = {
   text: string;
   boundingBox: BoundingBox;
   page: number;
@@ -81,7 +78,7 @@ async function startAsyncTextDetection(key: string): Promise<string> {
 // Use jobid to repeatedly check whether textract is complete
 async function getAsyncTextDetectionResult(
   jobId: string
-): Promise<{ text: string; boundingBoxes: QuestionData[] }> {
+): Promise<{ text: string; boundingBoxes: LineData[] }> {
   let nextToken: string | undefined = undefined;
   let finished = false;
   const allBlocks: TextractBlock[] = [];
@@ -106,10 +103,11 @@ async function getAsyncTextDetectionResult(
       await new Promise((r) => setTimeout(r, 3000));
     }
   }
-
+  
+  //creates map from block ID to block object -> Easily look up children of a LINE block -> WORD
   const blockMap = new Map<string, TextractBlock>();
   allBlocks.forEach(block => blockMap.set(block.Id, block));
-
+  //push all the words in the line block into the same bounding box
   function getWordBoundingBoxes(lineBlock: TextractBlock): BoundingBox[] {
     const wordBoxes: BoundingBox[] = [];
     if (lineBlock.Relationships) {
@@ -127,64 +125,29 @@ async function getAsyncTextDetectionResult(
     return wordBoxes;
   }
 
-  let started = false;
-  const allQuestions: QuestionData[] = [];
-  let collecting = false;
-  let currentBoxes: BoundingBox[] = [];
-  let currentText = "";
-  let currentPage = 1;
+  const allLines: LineData[] = [];
 
   for (const block of allBlocks) {
     if (block.BlockType === "LINE" && block.Text && block.Geometry?.BoundingBox) {
       const text = block.Text.trim();
-      const pageNumber = block.Page || 1
+      const page = block.Page || 1;
       const wordBoxes = getWordBoundingBoxes(block);
 
-      if (!started && questionRegex.test(text)) {
-        // First question detected —> start collecting
-        started = true;
-        collecting = true;
-        currentText = text + "\n";
-        currentBoxes = wordBoxes;
-        currentPage = pageNumber;
-        continue;
-      }
+      const mergedBox = wordBoxes.length > 0
+        ? mergeBoundingBoxes(wordBoxes)
+        : block.Geometry.BoundingBox;
 
-      if (started) {
-        if (questionRegex.test(text)) {
-          if (collecting) {
-            allQuestions.push({
-              text: currentText.trim(),
-              boundingBox: mergeBoundingBoxes(currentBoxes),
-              page: currentPage,
-            });
-          }
-          // New question start
-          collecting = true;
-          currentText = text + "\n";
-          currentBoxes = wordBoxes;
-          currentPage = pageNumber;
-        } else if (collecting) {
-          // Still collect question's content (like options)
-          currentText += text + "\n";
-          currentBoxes.push(...wordBoxes);
-        }
-      }
+      allLines.push({
+        text,
+        boundingBox: mergedBox,
+        page
+      });
     }
   }
 
-  // Handle last question
-  if (collecting) {
-    allQuestions.push({
-      text: currentText.trim(),
-      boundingBox: mergeBoundingBoxes(currentBoxes),
-      page: currentPage,
-    });
-  }
-
   return {
-    text: allQuestions.map(q => q.text).join("\n"),
-    boundingBoxes: allQuestions
+    text: allLines.map(q => q.text).join("\n"),
+    boundingBoxes: allLines
   };
 }
 
@@ -213,7 +176,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
 
     let combinedText = "";
-    const allBoundingBoxes: { file: string; boxes: QuestionData[] }[] = [];
+    const allBoundingBoxes: { file: string; boxes: LineData[] }[] = [];
 
     // Process each file in the repo
     for (const file of pdfFiles) {

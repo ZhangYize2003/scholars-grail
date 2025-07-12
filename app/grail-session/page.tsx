@@ -19,17 +19,20 @@ type MarkedResponse = {
   };
 };
 
+// Each question has a text, page numbers it is on, and its corresponding bounding box
 type BoundingBox = {
   Left: number;
   Top: number;
   Width: number;
   Height: number;
 };
-
+type PageBoundingBox = {
+  page: number;
+  boundingBox: BoundingBox;
+};
 type QuestionBoundingBox = {
   question: string;
-  boundingBox: BoundingBox;
-  page: number;
+  pages: PageBoundingBox[];
 };
 type BoundingBoxResponse = QuestionBoundingBox[];
 
@@ -40,7 +43,6 @@ type S3File = {
 
 export default function Page() {
   const {subject, paperFolder, working} = useRevisionContext();
-
   const [pdfText, setPdfText] = useState<string>("");
   const [workingsText, setWorkingsText] = useState<string>("");
   const [output, setOutput] = useState<HintsResponse | null>(null);
@@ -57,6 +59,7 @@ export default function Page() {
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
   const [noOfFiles, setNoOfFiles] = useState<number | null>(null);
   
+  // Gets the list of files in the S3 bucket for the current subject & paperFolder
   const fetchFiles = useCallback(async () => {
     const uid = localStorage.getItem("uid");
     if (!uid || !subject || !paperFolder) return;
@@ -76,7 +79,9 @@ export default function Page() {
     console.log(noOfFiles);
   }, [subject, paperFolder, noOfFiles]);
 
+  // Gets PDF text and bounding boxes for each line in the PDF -> Later sent to Gemini to restructure it
   const fetchPdfText = useCallback(async () => {
+    setLoading(true);
     const uid = localStorage.getItem("uid");
     if (!uid || !subject || !paperFolder) return;
     setMarked(null);
@@ -120,16 +125,16 @@ export default function Page() {
       fetchFiles();
       fetchWorkingText(working);
     }
-  }, [working]);
+  }, [working, fetchFiles, fetchWorkingText]);
 
+  // Use Gemini to order the bounding boxes into questions -> Handles pages spread across multiple pages
   const orderBoundingBox= useCallback(async () =>{
     try {
-      setLoading(true);
       setError(null);
       setOutput(null);
 
       if (!pdfText) return;
-      console.log(boundingBoxes);
+      console.log("Ordering bounding boxes");
 
       // Role Prompting
       const prompt = `
@@ -138,17 +143,31 @@ export default function Page() {
       For each question:
       1. Combine all related text blocks into a single 'question' array.
       2. Calculate ONE merged bounding box that fully encloses all bounding boxes of that question.
+      3. Since the questions can be on multiple pages, include the page number, as well as the corresponding bounding box, in the output.
 
       For each question, return:
       {
-        "question": ["full text of the question with options"],
-        "boundingBox": {
-          "Top": min Top <float>,
-          "Left": min Left <float>,
-          "Width": (max Right) - (min Left) <float>,
-          "Height": (max Bottom) - (min Top) <float>
-        },
-        "page": page number <number>
+        "question": "...",
+        "pages": [
+          {
+            "page": <page number 1>,
+            "boundingBox": {
+              "Left": <float>,
+              "Top": <float>,
+              "Width": <float>,
+              "Height": <float>
+            }
+          }
+          {
+            "page": <page number 2>,
+            "boundingBox": {
+              "Left": <float>,
+              "Top": <float>,
+              "Width": <float>,
+              "Height": <float>
+            }
+          }
+        ]
       }
 
       Bounding Box Info:
@@ -168,12 +187,10 @@ export default function Page() {
       if(response.ok) {
         setBoundingBoxes(data);
         console.log(boundingBoxes);
-      } else {
-        setError("Failed to generate hints.");
       }
     } catch (error) {
       console.error(error);
-      setError("Error occurred while generating content.");
+      setError("Error occurred while creating boundingbox.");
     }
   }, [pdfText, boundingBoxes]); 
 
@@ -283,7 +300,7 @@ export default function Page() {
     });
   };
 
-  const addHardQues = async () =>{
+  const addHardQues = async (boundingBoxes: QuestionBoundingBox[]) =>{
     console.log(hardQues);
     setAdding(true);
     // Create a JSON metadata for tracking what we addin in
@@ -295,9 +312,16 @@ export default function Page() {
     }
     const url = `usersData/${uid}/${subject}/Challenging Questions/${paperFolder}.json`;
     console.log("Complete BoundingBoxes:", boundingBoxes);
-    const filteredBoundingBoxes = boundingBoxes.filter((_, index) =>
-      hardQues.includes(index + 1)
-    );
+
+    const filteredBoundingBoxes: QuestionBoundingBox[] = [];
+    console.log("Filtering BoundingBoxes for hard questions");
+    boundingBoxes.forEach((box, index) => {
+      const questionNumber = index + 1;
+      console.log("Question Number:", questionNumber);
+      if (hardQues.includes(questionNumber)) {
+        filteredBoundingBoxes.push(box);
+      }
+    });
 
     console.log("Filtered BoundingBoxes:", filteredBoundingBoxes);
     const formData = new FormData();
@@ -340,25 +364,26 @@ export default function Page() {
     setAdding(false);
   };
 
+  // Only check for paperFolder, since using subject as a dependency causes textract to be called twice
   useEffect(() => {
-    if (subject && paperFolder) {
+    if (paperFolder) {
       fetchFiles();
       fetchPdfText();
     }
-  }, [subject, paperFolder]);
+  }, [paperFolder, fetchFiles, fetchPdfText]);
 
   useEffect(() => {
     if (pdfText) {
       orderBoundingBox();
       generateHint();
     }
-  }, [pdfText]);
+  }, [pdfText, orderBoundingBox, generateHint]);
 
   useEffect(() => {
     if (workingsText) {
       markWorkings();
     }
-  }, [workingsText]);
+  }, [workingsText, markWorkings]);
 
   return (
     <div className="min-h-screen text-white pb-20 px-6">
@@ -368,7 +393,7 @@ export default function Page() {
         <RevisionModal/>
       )}
      
-      {loading && <p className="text-yellow-400 mt-2">Generating hints...</p>}
+      {loading && <p className="text-yellow-400 mt-2">Parsing and Generating hints...</p>}
       {error && <p className="text-error mt-2">{error}</p>}
       {marking && <p className="text-yellow-400 mt-2">Marking...</p>}
       {adding && <p className="text-yellow-400 mt-2">Adding to Challenging Questions repo...</p>}
@@ -409,7 +434,7 @@ export default function Page() {
                   })}
                 </div>
                 <button
-                  onClick={()=>addHardQues()}
+                  onClick={()=>addHardQues(boundingBoxes)}
                   disabled={adding}
                   className={`px-4 py-2 rounded ${
                     adding ? "bg-gray-500 cursor-not-allowed" : "bg-gray-800 hover:bg-gray-900 cursor-pointer"
@@ -467,23 +492,25 @@ export default function Page() {
               <p className="text-gray-300 mb-4">Questions: {output.numberOfQuestions}</p>
 
               {/* Buttons */}
-              <div className="flex flex-wrap gap-3 justify-center mt-4">
-                {output.hints.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() =>
-                      setSelectedHint(selectedHint === index ? null : index)
-                    }
-                    className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 ${
-                      selectedHint === index
-                        ? "bg-gray-500"
-                        : "bg-gray-800 hover:bg-gray-900"
-                    } text-white font-semibold cursor-pointer`}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
-              </div>
+              {output?.hints?.length > 0 && (
+                <div className="flex flex-wrap gap-3 justify-center mt-4">
+                  {output.hints.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() =>
+                        setSelectedHint(selectedHint === index ? null : index)
+                      }
+                      className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 ${
+                        selectedHint === index
+                          ? "bg-gray-500"
+                          : "bg-gray-800 hover:bg-gray-900"
+                      } text-white font-semibold cursor-pointer`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {selectedHint !== null && (
                 <div className="mt-6 text-gray-200">

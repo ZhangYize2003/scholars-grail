@@ -57,7 +57,7 @@ export default function S3RenderFile() {
   useEffect(() => {
     if (repo?.folders) {
       setFolders(repo.folders);
-      console.log("Folders: ", folders);
+      console.log("Folders:", repo.folders);
     }
   }, [repo]);
 
