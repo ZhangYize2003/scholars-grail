@@ -1,5 +1,5 @@
 "use client";
-import { FiFolder, FiTrash2, FiArrowLeft } from "react-icons/fi";
+import { FiFolder, FiFile, FiTrash2, FiArrowLeft } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import CopySelectedFolder from "./MoveSelectedFolder";
 import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query";
@@ -9,7 +9,6 @@ type S3File = {
   key: string;
   lastModified?: string;
   size?: number;
-  url: string;
 };
 
 type S3Folder = {
@@ -23,6 +22,7 @@ export default function S3RenderFile() {
   const [rootPrefix, setRootPrefix] = useState("");
   const [currentPrefix, setCurrentPrefix] = useState("");
   const [folders, setFolders] = useState<S3Folder[]>([]);
+  const [files, setFiles] = useState<S3File[]>([]);
 
   useEffect(() => {
     const userID = localStorage.getItem("uid");
@@ -51,13 +51,20 @@ export default function S3RenderFile() {
       return (await response.json());
     },
     enabled: !!uid && currentPrefix !== "",
+    // Cashe for 15 min
+    gcTime: 15*60*1000,
   });
 
   // UPdates the folders data when new repo data is fetched
   useEffect(() => {
+    console.log("Repository:", repo);
     if (repo?.folders) {
       setFolders(repo.folders);
       console.log("Folders:", repo.folders);
+    }
+    if (repo?.files) {
+      setFiles(repo.files);
+      console.log("Files:", repo.files);
     }
   }, [repo]);
 
@@ -125,7 +132,7 @@ export default function S3RenderFile() {
           {currentPrefix == rootPrefix ? "Subjects" : currentPrefix.split("/").filter(Boolean).pop()}
         </span>
       </div>
-      {folders.length === 0 ? (
+      {folders.length == 0 && files.length == 0 ? (
         <div>
           <span className="flex items-center justify-between px-3">
             <div>Name</div>
@@ -138,21 +145,24 @@ export default function S3RenderFile() {
         <div>
           <span className="flex items-center justify-between px-3">
             <div>Name</div>
-            <div className="pl-53">| Date added</div>
+            <div className="pl-54">| Date added</div>
             <div className="pr-35">| Size</div> 
           </span>
+
+          {/* Listing all the folders */}
           <ul>
             {folders.map((folder) => {
-              const fileName = folder.prefix.split("/").filter(Boolean).pop()!;
-              const displayFileName = fileName.length > 40 ? fileName.slice(0, 40) + "…" : fileName; // I think max is 50 char
+              const folderName = folder.prefix.split("/").filter(Boolean).pop()!;
+              const displayFolderName = folderName.length > 40 ? folderName.slice(0, 40) + "…" : folderName; // I think max is 50 char
               return(
               <li key={folder.prefix} className="grid grid-cols-[1fr_250px_120px_50px] items-center cursor-pointer 
                                                   hover:bg-tertiary border-b-2 border-primary/50 px-3 py-1"
                   onClick={() => {handleForward(folder.prefix)}}>
+                
                 <div className="flex items-center my-1">
                   <FiFolder className="w-5 h-5 mr-3 text-amber-300" />
                   <span className="text-left">
-                    {displayFileName}
+                    {displayFolderName}
                   </span>
                 </div>
 
@@ -176,7 +186,35 @@ export default function S3RenderFile() {
                       deleteFolderMutation.mutate(folder.prefix)}}>
                   <FiTrash2 className="w-5 h-5"/>
                   </button>
+
                 </div>           
+              </li>
+            )})}
+          </ul>
+
+          {/* Listing all the files */}
+          <ul>
+            {files.map((file) => {
+              const fileName = file.key.split("/").filter(Boolean).pop()!;
+              const displayFileName = fileName.length > 40 ? fileName.slice(0, 40) + "…" : fileName; // I think max is 50 char
+              // Date follow SG convention
+              const fileDate = new Date(file.lastModified!).toLocaleDateString("en-SG", {year: "numeric", month: "2-digit", day: "2-digit"});
+              // Convert to KB should be enough
+              const fileSize = (file.size!/1024).toFixed(1);
+              return(
+              <li key={file.key} className="grid grid-cols-[1fr_250px_120px_50px] items-center cursor-pointer 
+                                                  hover:bg-tertiary border-b-2 border-primary/50 px-3 py-1">
+
+                <div className="flex items-center my-1">
+                  <FiFile className="w-5 h-5 mr-3" /> 
+                  <span className="text-left">
+                    {displayFileName}
+                  </span>
+                </div>
+
+                <span className="">{fileDate}</span>
+                <span className="">{fileSize}KB</span>
+           
               </li>
             )})}
           </ul>
