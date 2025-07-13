@@ -185,7 +185,7 @@ export default function S3RenderFile() {
                   <span className="">-</span>
                   <span className="">-</span>
 
-                  <div className="flex items-center gap-2 cursor-pointer">
+                  <div className="flex items-center gap-2">
                     {currentPrefix !== rootPrefix && (
                       <div onClick={(e) => {e.stopPropagation();}}>
                         <CopySelectedFolder
