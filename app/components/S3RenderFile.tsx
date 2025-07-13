@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import CopySelectedFolder from "./MoveSelectedFolder";
 import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query";
 
-// Not used?
 type S3File = {
   key: string;
   lastModified?: string;
   size?: number;
+  url?: string;
 };
 
 type S3Folder = {
@@ -23,6 +23,8 @@ export default function S3RenderFile() {
   const [currentPrefix, setCurrentPrefix] = useState("");
   const [folders, setFolders] = useState<S3Folder[]>([]);
   const [files, setFiles] = useState<S3File[]>([]);
+  const [fileUrl, setFileUrl] = useState<string | null>(null)
+  const [fileKey, setFileKey] = useState<string | null>(null)
 
   useEffect(() => {
     const userID = localStorage.getItem("uid");
@@ -97,6 +99,19 @@ export default function S3RenderFile() {
     setCurrentPrefix(prevPrefix);
   }
 
+  // Logic for viewing the files
+  const handleViewFile = (url : string, key: string) => {
+    // If click on same file
+    if (fileKey == key) {
+      setFileUrl(null);
+      setFileKey(null);
+    }
+    else {
+      setFileUrl(url);
+      setFileKey(key);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="bg-secondary border border-primary p-3 overflow-y-auto w-4xl h-[calc(100vh-200px)] text-main/75 text-xl rounded-lg shadow mx-auto">
@@ -154,70 +169,86 @@ export default function S3RenderFile() {
             {folders.map((folder) => {
               const folderName = folder.prefix.split("/").filter(Boolean).pop()!;
               const displayFolderName = folderName.length > 40 ? folderName.slice(0, 40) + "…" : folderName; // I think max is 50 char
+              
               return(
-              <li key={folder.prefix} className="grid grid-cols-[1fr_250px_120px_50px] items-center cursor-pointer 
-                                                  hover:bg-tertiary border-b-2 border-primary/50 px-3 py-1"
-                  onClick={() => {handleForward(folder.prefix)}}>
-                
-                <div className="flex items-center my-1">
-                  <FiFolder className="w-5 h-5 mr-3 text-amber-300" />
-                  <span className="text-left">
-                    {displayFolderName}
-                  </span>
-                </div>
+                <li key={folder.prefix} className="grid grid-cols-[1fr_250px_120px_50px] items-center cursor-pointer 
+                                                    hover:bg-tertiary border-b-2 border-primary/50 px-3 py-1"
+                    onClick={() => {handleForward(folder.prefix)}}>
+                  
+                  <div className="flex items-center my-1">
+                    <FiFolder className="w-5 h-5 mr-3 text-amber-300" />
+                    <span className="text-left">
+                      {displayFolderName}
+                    </span>
+                  </div>
 
-                <span className="">-</span>
-                <span className="">-</span>
+                  <span className="">-</span>
+                  <span className="">-</span>
 
-                <div className="flex items-center gap-2 cursor-pointer">
-                  {currentPrefix !== rootPrefix && (
-                    <div onClick={(e) => {e.stopPropagation();}}>
-                      <CopySelectedFolder
-                        rootPrefix={rootPrefix}
-                        folderPrefix={folder.prefix}/>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 cursor-pointer">
+                    {currentPrefix !== rootPrefix && (
+                      <div onClick={(e) => {e.stopPropagation();}}>
+                        <CopySelectedFolder
+                          rootPrefix={rootPrefix}
+                          folderPrefix={folder.prefix}/>
+                      </div>
+                    )}
 
-                  <button
-                    className="text-error hover:text-error/75 cursor-pointer"
-                    title="Delete folder"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Need this to prevent cd into the folder
-                      deleteFolderMutation.mutate(folder.prefix)}}>
-                  <FiTrash2 className="w-5 h-5"/>
-                  </button>
+                    <button
+                      className="text-error hover:text-error/75 cursor-pointer"
+                      title="Delete folder"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Need this to prevent cd into the folder
+                        deleteFolderMutation.mutate(folder.prefix)}}>
+                    <FiTrash2 className="w-5 h-5"/>
+                    </button>
 
-                </div>           
-              </li>
-            )})}
+                  </div>           
+                </li>
+              )})}
           </ul>
 
           {/* Listing all the files */}
           <ul>
-            {files.map((file) => {
+            {files.filter((file) => !file.key.endsWith(".json")) // Prevents challenging questions json file from showing
+                  .map((file) => {
               const fileName = file.key.split("/").filter(Boolean).pop()!;
               const displayFileName = fileName.length > 40 ? fileName.slice(0, 40) + "…" : fileName; // I think max is 50 char
               // Date follow SG convention
               const fileDate = new Date(file.lastModified!).toLocaleDateString("en-SG", {year: "numeric", month: "2-digit", day: "2-digit"});
               // Convert to KB should be enough
               const fileSize = (file.size!/1024).toFixed(1);
+
               return(
-              <li key={file.key} className="grid grid-cols-[1fr_250px_120px_50px] items-center cursor-pointer 
-                                                  hover:bg-tertiary border-b-2 border-primary/50 px-3 py-1">
+                <div key={file.key}>
+                  <li className="grid grid-cols-[1fr_250px_120px_50px] items-center cursor-pointer 
+                                  hover:bg-tertiary border-b-2 border-primary/50 px-3 py-1"
+                      onClick={() => handleViewFile(file.url!, file.key)}>
 
-                <div className="flex items-center my-1">
-                  <FiFile className="w-5 h-5 mr-3" /> 
-                  <span className="text-left">
-                    {displayFileName}
-                  </span>
-                </div>
+                    <div className="flex items-center my-1">
+                      <FiFile className="w-5 h-5 mr-3" /> 
+                      <span className="text-left">
+                        {displayFileName}
+                      </span>
+                    </div>
 
-                <span className="">{fileDate}</span>
-                <span className="">{fileSize}KB</span>
-           
-              </li>
+                    <span className="">{fileDate}</span>
+                    <span className="">{fileSize}KB</span>
+                  </li>
+
+                  {fileUrl && file.key == fileKey && (
+                    <div>
+                      <iframe
+                        src={fileUrl}
+                        className="w-full h-120 border-2 border-tertiary shadow-2xl"
+                      ></iframe>
+                    </div>
+                  )}
+
+              </div>
             )})}
           </ul>
+          
         </div>
       )}    
     </div>
