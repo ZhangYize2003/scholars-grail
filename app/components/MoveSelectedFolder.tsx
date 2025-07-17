@@ -26,7 +26,7 @@ export default function MoveSelectedFolder({ rootPrefix, folderPrefix }: MoveSel
   }, []);
 
   // Switched to use query
-  const { data: repo, isLoading, isError} = useQuery({
+  const { data: repo } = useQuery({
     queryKey: ["repo", rootPrefix],
     queryFn: async () => {
       const response = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(rootPrefix)}`);
@@ -46,7 +46,7 @@ export default function MoveSelectedFolder({ rootPrefix, folderPrefix }: MoveSel
     if (isCopyModalOpen) {
       fetchAllFolders();
     }
-  }, [isCopyModalOpen, rootPrefix]);
+  }, [repo.folders, isCopyModalOpen, rootPrefix]);
 
   // Handles copying of folder
   const copyFolderMutation = useMutation({

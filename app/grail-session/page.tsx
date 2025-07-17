@@ -4,6 +4,7 @@ import Header from "../home/header";
 import UploadWorking from "../components/UploadWorking";
 import RevisionModal from "../components/RevisionModal";
 import { useRevisionContext } from "../components/RevisionContext";
+import { useRouter } from "next/navigation";
 
 type HintsResponse = {
   numberOfQuestions: number;
@@ -42,7 +43,8 @@ type S3File = {
 };
 
 export default function Page() {
-  const {subject, paperFolder, working} = useRevisionContext();
+  const router = useRouter();
+  const {subject, paperFolder, working, setSubject ,setPaperFolder, setWorking} = useRevisionContext();
   const [pdfText, setPdfText] = useState<string>("");
   const [workingsText, setWorkingsText] = useState<string>("");
   const [output, setOutput] = useState<HintsResponse | null>(null);
@@ -58,30 +60,32 @@ export default function Page() {
   const [files, setFiles] = useState<S3File[]>([]);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
   const [noOfFiles, setNoOfFiles] = useState<number | null>(null);
+  const [orderedBoundingBoxes, setOrderedBoundingBoxes] = useState<boolean>(false);
   
-  // Gets the list of files in the S3 bucket for the current subject & paperFolder
-  const fetchFiles = useCallback(async () => {
-    const uid = localStorage.getItem("uid");
-    if (!uid || !subject || !paperFolder) return;
-
-    const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
-    const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
-    const data = await res.json();
-    console.log(data);
-    const allowedExtensions = ['.pdf', '.jpeg', '.jpg', '.png'];
-    const filteredFiles = (data.files || []).filter((file: S3File) => {
-      const fileExtension = file.key.toLowerCase().substring(file.key.lastIndexOf('.'));
-      return allowedExtensions.includes(fileExtension);
-    });
-
-    setFiles(filteredFiles);
-    setNoOfFiles(data.KeyCount);
-    console.log(noOfFiles);
-  }, [subject, paperFolder, noOfFiles]);
+  const handleExit = () => {
+    setPdfText("");
+    setWorkingsText("");
+    setOutput(null);
+    setMarked(null);
+    setLoading(false);
+    setMarking(false);
+    setError(null);
+    setSelectedHint(null);
+    setSelectedTips(null);
+    setHardQues([]);
+    setBoundingBoxes([]);
+    setAdding(false);
+    setFiles([]);
+    setSelectedFileUrl(null);
+    setNoOfFiles(null);
+    setSubject("");
+    setPaperFolder("");
+    setWorking(null);
+    router.push("/grail-session");
+  };
 
   // Gets PDF text and bounding boxes for each line in the PDF -> Later sent to Gemini to restructure it
   const fetchPdfText = useCallback(async () => {
-    setLoading(true);
     const uid = localStorage.getItem("uid");
     if (!uid || !subject || !paperFolder) return;
     setMarked(null);
@@ -106,140 +110,48 @@ export default function Page() {
 
   }, [subject, paperFolder]);
 
-  const fetchWorkingText = useCallback(async (file: File) => {
-    if (!file) return;
-    setMarking(true);
+  // Gets the list of files in the S3 bucket for the current subject & paperFolder
+  const fetchFiles = useCallback(async () => {
     const uid = localStorage.getItem("uid");
-    const workingURL = `usersData/${uid}/${subject}/${paperFolder}/${file.name}`
-    const res = await fetch(`/api/workings-upload?key=${workingURL}`, {
-        method: 'GET',
-    });
+    if (!uid || !subject || !paperFolder) return;
+
+    const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
+    const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
     const data = await res.json();
-    setWorkingsText(data.text);
-    console.log(data.text);
-  }, [subject, paperFolder]);
+    console.log(data);
+    const allowedExtensions = ['.pdf', '.jpeg', '.jpg', '.png'];
+    const filteredFiles = (data.files || []).filter((file: S3File) => {
+      const fileExtension = file.key.toLowerCase().substring(file.key.lastIndexOf('.'));
+      return allowedExtensions.includes(fileExtension);
+    });
+
+    setFiles(filteredFiles);
+    setNoOfFiles(data.KeyCount);
+    console.log(noOfFiles);
+  }, [subject, paperFolder, noOfFiles]);
 
   useEffect(() => {
+    const fetchWorkingText = async (file: File) => {
+      if (!file) return;
+      const uid = localStorage.getItem("uid");
+      const workingURL = `usersData/${uid}/${subject}/${paperFolder}/${file.name}`
+      const res = await fetch(`/api/workings-upload?key=${workingURL}`, {
+          method: 'GET',
+      });
+      const data = await res.json();
+      setWorkingsText(data.text);
+      console.log(data.text);
+    };
+
     if (working) {
       console.log(working.name);
       fetchFiles();
+      setMarking(true);
       fetchWorkingText(working);
     }
-  }, [working, fetchFiles, fetchWorkingText]);
+  }, [working, subject, paperFolder, fetchFiles]);
 
-  // Use Gemini to order the bounding boxes into questions -> Handles pages spread across multiple pages
-  const orderBoundingBox= useCallback(async () =>{
-    try {
-      setError(null);
-      setOutput(null);
-
-      if (!pdfText) return;
-      console.log("Ordering bounding boxes");
-
-      // Role Prompting
-      const prompt = `
-      Given the following JSON of text blocks with bounding boxes, group them into questions. 
-
-      For each question:
-      1. Combine all related text blocks into a single 'question' array.
-      2. Calculate ONE merged bounding box that fully encloses all bounding boxes of that question.
-      3. Since the questions can be on multiple pages, include the page number, as well as the corresponding bounding box, in the output.
-
-      For each question, return:
-      {
-        "question": "...",
-        "pages": [
-          {
-            "page": <page number 1>,
-            "boundingBox": {
-              "Left": <float>,
-              "Top": <float>,
-              "Width": <float>,
-              "Height": <float>
-            }
-          }
-          {
-            "page": <page number 2>,
-            "boundingBox": {
-              "Left": <float>,
-              "Top": <float>,
-              "Width": <float>,
-              "Height": <float>
-            }
-          }
-        ]
-      }
-
-      Bounding Box Info:
-      """${JSON.stringify(boundingBoxes)}"""
-      `;
-
-      const response = await fetch('/api/generate-ai', {
-        method: 'POST',
-        headers: {
-          'Content-type': 'application/json'
-        },
-        body: JSON.stringify({ body: prompt })
-      });
-
-      const data: BoundingBoxResponse = await response.json();
-      console.log(data);
-      if(response.ok) {
-        setBoundingBoxes(data);
-        console.log(boundingBoxes);
-      }
-    } catch (error) {
-      console.error(error);
-      setError("Error occurred while creating boundingbox.");
-    }
-  }, [pdfText, boundingBoxes]); 
-
-  const generateHint = useCallback(async () => {
-    try {
-      setError(null);
-      setOutput(null);
-
-      if (!pdfText) return;
-
-      // Role Prompting
-      const prompt = `
-        You are an assistant that processes educational content. 
-        Given the following extracted PDF text, identify all the questions present and generate a short but helpful hint for each question.
-                
-        Return the response strictly in the following JSON format:
-        {
-          "numberOfQuestions": <number>,
-          "hints": ["hint 1", "hint 2", ...]
-        }
-
-        PDF Text:
-        """${pdfText}"""
-      `;
-
-      const response = await fetch('/api/generate-ai', {
-        method: 'POST',
-        headers: {
-          'Content-type': 'application/json'
-        },
-        body: JSON.stringify({ body: prompt })
-      });
-
-      const data: HintsResponse = await response.json();
-      console.log(data);
-      if(response.ok) {
-        setOutput(data);
-      } else {
-        setError("Failed to generate hints.");
-      }
-    } catch (error) {
-      console.error(error);
-      setError("Error occurred while generating content.");
-    } finally {
-      setLoading(false);
-    }
-  }, [pdfText]);
-
-  const markWorkings = async () => {
+  const markWorkings = useCallback(async () => {
     try {
       setError(null);
       setMarked(null);
@@ -287,7 +199,7 @@ export default function Page() {
     }finally {
       setMarking(false);
     }
-  };
+  }, [pdfText, workingsText]);
 
   const toggleHardQues = (qNum: number) => {
     setHardQues((prev) => {
@@ -310,9 +222,12 @@ export default function Page() {
       setAdding(false);
       return;
     }
+    while(orderedBoundingBoxes === false){
+      console.log("Waiting for ordered bounding boxes to be set");
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
     const url = `usersData/${uid}/${subject}/Challenging Questions/${paperFolder}.json`;
     console.log("Complete BoundingBoxes:", boundingBoxes);
-
     const filteredBoundingBoxes: QuestionBoundingBox[] = [];
     console.log("Filtering BoundingBoxes for hard questions");
     boundingBoxes.forEach((box, index) => {
@@ -367,17 +282,164 @@ export default function Page() {
   // Only check for paperFolder, since using subject as a dependency causes textract to be called twice
   useEffect(() => {
     if (paperFolder) {
+      setLoading(true);
       fetchFiles();
       fetchPdfText();
     }
   }, [paperFolder, fetchFiles, fetchPdfText]);
 
   useEffect(() => {
-    if (pdfText) {
+    // Use Gemini to order the bounding boxes into questions -> Handles pages spread across multiple pages
+    const orderBoundingBox= async () =>{
+      try {
+        setError(null);
+        setOutput(null);
+
+        if (!pdfText) return;
+        console.log("Ordering bounding boxes");
+        setOrderedBoundingBoxes(true);
+        // Role Prompting
+        const prompt = `
+        Given the following JSON of text blocks with bounding boxes, you are tasked to group them into questions, their corresponding bounding boxes, and return a JSON object. DO NOT RETURN ANYTHING ELSE. ONLY JSON.
+
+        For each question:
+        1. Combine all related line blocks into a single 'question' array.
+        2. Create bounding boxes for each question such that it covers all the line blocks up till the start of the next question. This is to cover the diagrams drawn under the question.
+        3. Since the questions can be on multiple pages, include each page number the question appears, in the "pages" component of the following JSON format.
+
+        Use the following format:
+        {
+          "question": "...",
+          "pages": [
+            {
+              "page": <page number 1>,
+              "boundingBox": {
+                "Left": <float>,
+                "Top": <float>,
+                "Width": <float>,
+                "Height": <float>
+              }
+            },
+            {
+              "page": <page number 2>,
+              "boundingBox": {
+                "Left": <float>,
+                "Top": <float>,
+                "Width": <float>,
+                "Height": <float>
+              }
+            }
+          ]
+        }
+
+        Example:
+        Suppose the following blocks occur in order:
+
+        - { text: "Question 5", page: 1 }
+        - { text: "A company wants to implement a solution that can automatically extract information from", page: 1 }
+        - { text: "documents like invoices and receipts. Which Google Cloud AI API would be most appropriate for this", page: 2 }
+        - { text: "purpose?", page: 2 }
+        - { text: "A) Cloud Vision API", page: 2 }
+        - ...
+        - { text: "Question 6", page: 2 }
+
+        Then, the grouped question should span page 1 and 2, and its bounding boxes should cover all the related blocks on both pages, even though they are split.
+        The output should be in the following format:
+        {
+          "question": "Question 5 A company wants to implement a solution that can automatically extract information from documents like invoices and receipts. Which Google Cloud AI API would be most appropriate for this purpose? A) Cloud Vision API",
+          "pages": [
+            {
+              "page": 1,
+              "boundingBox": {
+                "Left": 0.1,
+                "Top": 0.2,
+                "Width": 0.8,
+                "Height": 0.1
+              }
+            },
+            {
+              "page": 2,
+              "boundingBox": {
+                "Left": 0.1,
+                "Top": 0.3,
+                "Width": 0.8,
+                "Height": 0.1
+              }
+            }
+          ]
+        }
+
+        Bounding Box Info:
+        """${JSON.stringify(boundingBoxes)}"""
+        `;
+
+        const response = await fetch('/api/generate-ai', {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json'
+          },
+          body: JSON.stringify({ body: prompt })
+        });
+        const data: BoundingBoxResponse = await response.json();
+        console.log(data);
+        if(response.ok) {
+          setBoundingBoxes(data);
+        }
+      } catch (error) {
+        console.error(error);
+        setError("Error occurred while creating boundingbox.");
+      } finally {
+        setLoading(false);
+      }
+    }; 
+    const generateHint = async () => {
+      try {
+        setError(null);
+        setOutput(null);
+
+        if (!pdfText) return;
+
+        // Role Prompting
+        const prompt = `
+          You are an assistant that processes educational content. 
+          Given the following extracted PDF text, identify all the questions present and generate a short but helpful hint for each question.
+                  
+          Return the response strictly in the following JSON format:
+          {
+            "numberOfQuestions": <number>,
+            "hints": ["hint 1", "hint 2", ...]
+          }
+
+          PDF Text:
+          """${pdfText}"""
+        `;
+
+        const response = await fetch('/api/generate-ai', {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json'
+          },
+          body: JSON.stringify({ body: prompt })
+        });
+
+        const data: HintsResponse = await response.json();
+        console.log(data);
+        if(response.ok) {
+          setOutput(data);
+        } else {
+          setError("Failed to generate hints.");
+        }
+      } catch (error) {
+        console.error(error);
+        setError("Error occurred while generating content.");
+      }
+    };
+
+    if (pdfText && !orderedBoundingBoxes) {
       orderBoundingBox();
       generateHint();
     }
-  }, [pdfText, orderBoundingBox, generateHint]);
+  }, [orderedBoundingBoxes, boundingBoxes, pdfText]);
 
   useEffect(() => {
     if (workingsText) {
@@ -390,7 +452,7 @@ export default function Page() {
       <Header />
       <h1 className="pt-20 text-gray-200">Grail Session</h1>
       {!output && (
-        <RevisionModal/>
+        <RevisionModal />
       )}
      
       {loading && <p className="text-yellow-400 mt-2">Parsing and Generating hints...</p>}
@@ -398,17 +460,18 @@ export default function Page() {
       {marking && <p className="text-yellow-400 mt-2">Marking...</p>}
       {adding && <p className="text-yellow-400 mt-2">Adding to Challenging Questions repo...</p>}
       
-      {output && (
+      {/* Wait for Bounding Boxes to be ordered before displaying*/}
+      {output && orderedBoundingBoxes && (
         <div className="mt-8 flex justify-center gap-8">
           {/* Working Upload Area */}
-          <div className="w-1/2 h-120 bg-black rounded p-4 shadow-lg">
+          <div className="w-1/2 h-120 bg-black rounded p-4 shadow-lg space-y-6">
             <div>
               <h2 className="font-bold mb-4 text-white text-lg">Upload Your Workings Here</h2>
               <UploadWorking/>
             </div>
             <div>              
               {marked && paperFolder !== "Challenging Questions" && (
-              <div className="bg-black rounded p-4 shadow-lg">
+              <div className="w-full bg-black rounded p-4 shadow-lg space-y-6">
                 <h2 className="font-bold mb-4 text-white text-lg">Add these to {subject}&apos;s Challenging questions Repo.</h2>
 
                 <div className="flex flex-wrap gap-3 justify-center mt-4">
@@ -436,7 +499,7 @@ export default function Page() {
                 <button
                   onClick={()=>addHardQues(boundingBoxes)}
                   disabled={adding}
-                  className={`px-4 py-2 rounded ${
+                  className={`mt-4 px-4 py-2 rounded w-full ${
                     adding ? "bg-gray-500 cursor-not-allowed" : "bg-gray-800 hover:bg-gray-900 cursor-pointer"
                   }`}
                 >
@@ -562,6 +625,16 @@ export default function Page() {
           </div>
         </div>
       )}
+      <div className="flex justify-end mt-4">
+        {output && (
+          <button
+            onClick={handleExit}
+            className="px-4 py-2 bg-red-700 hover:bg-red-800 rounded text-white cursor-pointer"
+          >
+            Exit Session
+          </button>
+        )}
+      </div>
     </div>
   );
 }
