@@ -123,7 +123,7 @@ const createMockFile = (name: string, type: string, content: string) => {
 test("should allow working upload and display uploaded file", async () => {
   const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
   await act(async () => {
-    render(<UploadWorking onUploadComplete={() => {}} />);
+    render(<UploadWorking/>);
   });
 
   const PagesContent = Array(3).fill("/Type /Page").join("\n");

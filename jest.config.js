@@ -8,11 +8,10 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
-};
-module.exports = {
-  fakeTimers: {
-    enableGlobally: true
-  }
+  moduleNameMapper: {
+    // Handle module aliases
+    '^@/(.*)$': '<rootDir>/app/$1',
+  },
 };
 // createJestConfig is exported this way to ensure that jest can load next.js config which is async
 module.exports = createJestConfig(customJestConfig);

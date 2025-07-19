@@ -2,7 +2,7 @@
 import React from "react";
 import { render, fireEvent, waitFor, screen } from "@testing-library/react";
 import S3UploadForm from "../../components/S3UploadForm";
-import { RevisionProvider } from "../../components/RevisionContext";
+import RevisionProvider from "../../components/RevisionContext";
 import userEvent from '@testing-library/user-event';
 
 beforeEach(() => {
