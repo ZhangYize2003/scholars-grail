@@ -2,8 +2,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {generateHints} from '../../utils/generateHints'
 import UploadWorking from '../../components/UploadWorking';
-
-import { act } from 'react';
+import Page from '@/app/grail-session/page';
+import React, { act } from 'react';
 
 global.fetch = jest.fn(() =>
   Promise.resolve({
@@ -63,61 +63,12 @@ const createMockFile = (name: string, type: string, content: string) => {
   return file;
 };
 
-// // FolderSelector Component
-// describe('FolderSelector Component', () => {
-//   let mockFetch: jest.Mock;
-//   const onFolderSelect = jest.fn();
-
-//   beforeEach(() => {
-//     localStorageMock.clear();
-//     localStorageMock.setItem('uid', 'ATF2j9GrCiSlFqrCu5eEjAJgtE52');
-
-//     mockFetch = jest.fn((url: string) => {
-//     if (url.includes('/api/s3-render?uid=ATF2j9GrCiSlFqrCu5eEjAJgtE52&prefix=')) {
-//         return Promise.resolve({
-//         ok: true,
-//         json: () => Promise.resolve({
-//             folders: [
-//             { prefix: 'usersData/ATF2j9GrCiSlFqrCu5eEjAJgtE52/English/mcq/' }, // <- subfolder now in folders
-//             ]
-//         }),
-//         });
-//     }
-
-//     if (url.includes('/api/s3-render?uid=ATF2j9GrCiSlFqrCu5eEjAJgtE52')) {
-//         return Promise.resolve({
-//         ok: true,
-//         json: () => Promise.resolve({
-//             folders: [
-//             { prefix: 'usersData/ATF2j9GrCiSlFqrCu5eEjAJgtE52/English/' }, // subject folder
-//             ]
-//         }),
-//         });
-//     }
-
-//     return Promise.reject(new Error(`Unhandled fetch request for URL: ${url}`));
-//     });
-
-//     global.fetch = mockFetch;
-//   });
-
-//   it('renders the component and fetches subjects and subfolders', async () => {
-//     render(<FolderSelector onFolderSelect={onFolderSelect} parsing={false} refreshkey={0} />);
-
-//     const subjectLabel = await screen.findByLabelText('Select Subject');
-//     expect(subjectLabel).toBeInTheDocument();
-//     const subjectOption = await screen.findByText('Choose a subject');
-//     expect(subjectOption).toBeInTheDocument();
-
-//     fireEvent.change(subjectLabel, { target: { value: 'English' } });
-
-//     const folderLabel = await screen.findByLabelText('Select Folder');
-//     expect(folderLabel).toBeInTheDocument();
-//     const folderOption = await screen.findByText('Choose a folder');
-//     expect(folderOption).toBeInTheDocument();
-
-//   });
-// });
+test("renders header and initial elements", () => {
+  render(<Page />);
+  const elements = screen.getAllByText(/Grail Session/i);
+  expect(elements[0]).toBeInTheDocument();
+  expect(screen.getByText(/Parsing and Generating hints.../i)).toBeInTheDocument();
+});
 
 // Check if working can be dropped and uploaded
 test("should allow working upload and display uploaded file", async () => {
@@ -146,11 +97,6 @@ test("should allow working upload and display uploaded file", async () => {
     fireEvent.drop(dropzone, data);
   });
 
-  // // Cant see marking as it is not "mock" uploading
-  // await waitFor(() => {
-  //   expect(screen.getByText("Marking...")).toBeInTheDocument();
-  // });
-
   //read console.log to check if file dropped and working uploaded successfully
   await waitFor(() => {
     const firstLog = consoleSpy.mock.calls[0][0];
@@ -161,7 +107,6 @@ test("should allow working upload and display uploaded file", async () => {
 
   consoleSpy.mockRestore(); 
 });
-
 
 // Generate hints -> Gemini API working
 describe("generateHints", () => {
@@ -177,7 +122,7 @@ describe("generateHints", () => {
     ) as jest.Mock;
   });
 
-  it("gemini correctly returns hints", async () => {
+  test("hints from gemini are correctly handled", async () => {
     const pdfText = "Q1. ... Q2. ... Q3. ...";
     const result = await generateHints(pdfText);
 
@@ -186,7 +131,7 @@ describe("generateHints", () => {
     expect(result.hints[0]).toContain("Hint");
   });
 
-  it("throws error if fetch fails", async () => {
+  test("throws error if fetch fails", async () => {
     (global.fetch as jest.Mock).mockImplementationOnce(() =>
       Promise.resolve({ ok: false })
     );
@@ -194,3 +139,4 @@ describe("generateHints", () => {
     await expect(generateHints("Some text")).rejects.toThrow("Failed to generate hints.");
   });
 });
+

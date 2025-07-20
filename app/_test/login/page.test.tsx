@@ -5,9 +5,6 @@ import { useCreateUserWithEmailAndPassword } from 'react-firebase-hooks/auth';
 import { setDoc, doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useSignInWithEmailAndPassword, useSignInWithGoogle } from 'react-firebase-hooks/auth';
-import * as config from '@/app/_mocks_/firebase/config';
-
-const mockDb = config.db;
 
 jest.mock('@/firebase/config', () => ({
   __esModule: true,
@@ -62,7 +59,7 @@ describe('Login functionality', () => {
     localStorage.clear();
   });
 
-  it('logs in and redirects to homepage', async () => {
+  test('logs in and redirects to homepage', async () => {
     render(<SignInPage />);
 
     // fill in the form
@@ -86,7 +83,7 @@ describe('Login functionality', () => {
     expect(localStorage.getItem('uid')).toBe('test-uid');
   });
 
-  it('shows error when email or password is missing', async () => {
+  test('shows error when email or password is missing', async () => {
     const signInMock = jest.fn();
     (useSignInWithEmailAndPassword as jest.Mock).mockReturnValue([
       signInMock,
@@ -106,7 +103,7 @@ describe('Login functionality', () => {
     });
   });
   
-  it('displays error if login fails', async () => {
+  test('displays error if login fails', async () => {
     const signInMock = jest.fn().mockRejectedValue(new Error('Invalid username or password'));
 
     (useSignInWithEmailAndPassword as jest.Mock).mockReturnValue([
@@ -131,7 +128,7 @@ describe('Login functionality', () => {
     });
   });
 
-  it('signs in with Google and redirects', async () => {
+  test('signs in with Google', async () => {
     mockGoogleSignIn.mockImplementation(() => {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('uid', 'test-uid');
@@ -147,7 +144,6 @@ describe('Login functionality', () => {
     expect(localStorage.getItem('isLoggedIn')).toBe('true');
     expect(localStorage.getItem('uid')).toBe('test-uid');
   });
-
 
 });
 
@@ -165,7 +161,7 @@ describe('Sign Up functionality', () => {
     jest.clearAllMocks();
   });
 
-  it('calls setDoc with correct data on successful sign up', async () => {
+  test('calls setDoc with correct data and stores data in firestore on successful sign up', async () => {
     mockCreateUser.mockResolvedValueOnce({
       user: { uid: '12345' },
     });
@@ -199,5 +195,71 @@ describe('Sign Up functionality', () => {
         createdAt: 'mocked-timestamp',
       });
     });
+  });
+
+  test('shows error if username or email is missing', async () => {
+    render(<SignUpPage />);
+
+    fireEvent.change(screen.getByPlaceholderText('Enter your password'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Confirm your password'), {
+      target: { value: 'password123' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
+
+    const usernameInput = screen.getByLabelText(/username/i);
+    const emailInput = screen.getByLabelText(/email address/i);
+
+    expect(usernameInput).toBeInvalid();
+    expect(emailInput).toBeInvalid();
+  });
+  
+  test('shows error if passwords do not match', async () => {
+    render(<SignUpPage />);
+
+    fireEvent.change(screen.getByPlaceholderText(/username/i), {
+      target: { value: 'testuser' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/email/i), {
+      target: { value: 'test@example.com' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter your password'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Confirm your password'), {
+      target: { value: 'differentpassword' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
+    });
+  });
+
+  test('shows error if email does not contain "@"', async () => {
+    render(<SignUpPage />);
+
+    // Fill in all required fields except with an invalid email
+    fireEvent.change(screen.getByLabelText(/username/i), {
+      target: { value: 'testuser' },
+    });
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'invalidemail.com' }, // no @
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter your password'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Confirm your password'), {
+      target: { value: 'password123' },
+    });
+
+    // Try to submit
+    fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
+
+    // check email input is invalid
+    const emailInput = screen.getByLabelText(/email address/i);
+    expect(emailInput).toBeInvalid();
   });
 });

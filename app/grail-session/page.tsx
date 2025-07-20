@@ -41,13 +41,13 @@ type S3File = {
   key: string;
   url: string;
 };
-
-export default function Page() {
+// adding testOutput supports testing after output has been set
+export default function Page({ testOutput }: { testOutput?: HintsResponse | null }) {
   const router = useRouter();
   const {subject, paperFolder, working, setSubject ,setPaperFolder, setWorking} = useRevisionContext();
   const [pdfText, setPdfText] = useState<string>("");
   const [workingsText, setWorkingsText] = useState<string>("");
-  const [output, setOutput] = useState<HintsResponse | null>(null);
+  const [output, setOutput] = useState<HintsResponse | null>(testOutput || null);
   const [marked, setMarked] = useState<MarkedResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [marking, setMarking] = useState<boolean>(false);
