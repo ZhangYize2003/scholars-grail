@@ -12,7 +12,7 @@ const lambdaClient = new LambdaClient({
 export async function POST(request: NextRequest) {
   try {
     const { bucket, uid, subject, paperFolder } = await request.json();
-
+    // Lambda function expects these parameters and uses them to process the PDF cropping -> Ensure valid input
     const payload = {
       bucket,
       uid,
@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
       paperFolder,
     };
     console.log("Payload:", payload);
-
+    
+    // AWS Lambda function has been set up with code to process
     const command = new InvokeCommand({
       FunctionName: "scholar-grail-cropper",
       Payload: Buffer.from(JSON.stringify(payload)),

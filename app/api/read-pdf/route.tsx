@@ -49,7 +49,7 @@ type LineData = {
   page: number;
 };
 
-// Combine Ques + Options
+// Combine multiple bounding boxes into one
 function mergeBoundingBoxes(boxes: BoundingBox[]): BoundingBox {
   const minX = Math.min(...boxes.map(b => b.Left));
   const minY = Math.min(...boxes.map(b => b.Top));
@@ -178,7 +178,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     let combinedText = "";
     const allBoundingBoxes: { file: string; boxes: LineData[] }[] = [];
 
-    // Process each file in the repo
+    // Process each file in the repo -> Useful when user uploads ques paper and answer key
     for (const file of pdfFiles) {
       const key = file.Key!;
       console.log(`Starting Textract job for ${key}`);
@@ -189,7 +189,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       combinedText += `\n--- ${key} ---\n${text}\n`;
       allBoundingBoxes.push({ file: key, boxes: boundingBoxes });
     }
-
+    // Return combined text and bounding boxes for all files
     return NextResponse.json({ text: combinedText, boundingBoxes: allBoundingBoxes });
   } catch (error) {
     console.error("Error processing PDFs with Textract async:", error);

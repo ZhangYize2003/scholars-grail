@@ -14,6 +14,7 @@ const s3Client = new S3Client({
     }
 });
 
+// Deleting a folder in S3
 export async function DELETE(request: Request): Promise<NextResponse> {
     try {
         const { searchParams } = new URL(request.url);

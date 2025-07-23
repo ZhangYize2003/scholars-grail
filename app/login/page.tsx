@@ -31,6 +31,7 @@ export default function SignInPage() {
     
     useEffect(() => {
       if (googleUser) {
+        // Set items in localStorage to be used in other parts of the app
         localStorage.setItem("uid", googleUser.user.uid);
         const uid = googleUser.user.uid;
         const userRef = doc(db, 'users', uid);

@@ -15,7 +15,7 @@ export default function UploadingWorking() {
         if (!uid) {
             return;
         }   
-
+        // These are used to find the directory to upload the file to
         const formData = new FormData();
         formData.append("uid", uid);    
         formData.append("subject", subject);
@@ -39,7 +39,7 @@ export default function UploadingWorking() {
             console.error("Error uploading Working:", error);
         }
     };
-
+    // Handle working file processing -> Check no. of pages in PDF -> More than 10 pages, alert user
     const processFile = (file: File) => {
         if (file.type === "application/pdf") {
             const fileReader = new FileReader();
@@ -69,7 +69,7 @@ export default function UploadingWorking() {
             setWorking(null);
         }
     };
-
+    // Function for drag n drop 
     const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
         e.preventDefault();
         const file = e.dataTransfer.files?.[0];

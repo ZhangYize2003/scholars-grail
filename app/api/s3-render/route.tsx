@@ -25,6 +25,7 @@ const getContentType = (key: string) => {
 export async function GET(request: Request): Promise<NextResponse> {
     try {
         const { searchParams } = new URL(request.url);
+        // searchParams are provided with the API request
         const uid = searchParams.get("uid");
         const prefix = searchParams.get("prefix") || `usersData/${uid}/`;
         console.log("Fetching files for user ID:", uid);
@@ -35,10 +36,12 @@ export async function GET(request: Request): Promise<NextResponse> {
         });
         const data = await s3Client.send(listCommand);
         console.log("API response: ", data);
+        // Finding folders in the specified prefix
         const folders = (data.CommonPrefixes || []).map(prefix => ({
             prefix: prefix.Prefix,
         }));
         console.log(folders);
+        // Finding files in the specified prefix
         const files = await Promise.all(
             (data.Contents || [])
                 .filter(item => !item.Key!.endsWith('/'))

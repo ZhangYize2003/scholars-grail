@@ -27,7 +27,7 @@ async function uploadJSONToS3(jsonData: string, url: string) {
     await s3Client.send(command);
     return jsonData;
 }
-
+// post to S3 bucket with hardQues and boundingBoxes -> Will be used by AWS Lambda function later
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();

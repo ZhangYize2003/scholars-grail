@@ -3,6 +3,16 @@ import Page from "@/app/grail-session/page";
 import RevisionProvider from "@/app/components/RevisionContext";
 
 const mockRouterPush = jest.fn();
+// Mock window.location.reload to prevent actual page reload during tests
+beforeEach(() => {
+  Object.defineProperty(window, "location", {
+    value: {
+      ...window.location,
+      reload: jest.fn(),
+    },
+    writable: true,
+  });
+});
 
 // Mock useRouter
 jest.mock("next/navigation", () => ({
@@ -28,7 +38,7 @@ test("renders Exit button when output is present and handles click", () => {
 
   // Simulate click and route change back to grail-session
   fireEvent.click(exitBtn);
-  expect(mockRouterPush).toHaveBeenCalledWith("/grail-session");
+  expect(window.location.reload).toHaveBeenCalled();
 });
 
 test("does not render Exit button when output is not present", () => {

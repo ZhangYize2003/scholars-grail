@@ -62,26 +62,9 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
   const [noOfFiles, setNoOfFiles] = useState<number | null>(null);
   const [orderedBoundingBoxes, setOrderedBoundingBoxes] = useState<boolean>(false);
   
+  // Handle exit button click -> Refreshes the page
   const handleExit = () => {
-    setPdfText("");
-    setWorkingsText("");
-    setOutput(null);
-    setMarked(null);
-    setLoading(false);
-    setMarking(false);
-    setError(null);
-    setSelectedHint(null);
-    setSelectedTips(null);
-    setHardQues([]);
-    setBoundingBoxes([]);
-    setAdding(false);
-    setFiles([]);
-    setSelectedFileUrl(null);
-    setNoOfFiles(null);
-    setSubject("");
-    setPaperFolder("");
-    setWorking(null);
-    router.push("/grail-session");
+    window.location.reload();
   };
 
   // Gets PDF text and bounding boxes for each line in the PDF -> Later sent to Gemini to restructure it

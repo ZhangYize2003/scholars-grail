@@ -8,7 +8,7 @@ type RequestBody = {
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
-
+    // Using Gemini 2.0 Flash model
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const data: RequestBody = await req.json();
@@ -19,6 +19,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const output = await response.text();
     console.log(output);
     let cleanedOutput = output.trim();
+    // Throw error if the output is not in this format
     if (cleanedOutput.startsWith("```json")) {
       cleanedOutput = cleanedOutput.replace(/```json\s*/, '').replace(/```$/, '').trim();
     } else {

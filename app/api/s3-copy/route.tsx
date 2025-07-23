@@ -13,6 +13,7 @@ const s3Client = new S3Client({
     }
 });
 
+// Copying a folder in S3
 export async function PUT(request: Request): Promise<NextResponse> {
     try {
         const { searchParams } = new URL(request.url);
