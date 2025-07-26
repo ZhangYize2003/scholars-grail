@@ -5,6 +5,8 @@ import UploadWorking from "../components/UploadWorking";
 import RevisionModal from "../components/RevisionModal";
 import { useRevisionContext } from "../components/RevisionContext";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query";
+import { MoonLoader } from "react-spinners";
 
 type HintsResponse = {
   numberOfQuestions: number;
@@ -45,8 +47,9 @@ type S3File = {
 export default function Page({ testOutput }: { testOutput?: HintsResponse | null }) {
   const router = useRouter();
   const {subject, paperFolder, working, setSubject ,setPaperFolder, setWorking} = useRevisionContext();
+  const [uid, setUid] = useState<string | null>(null);
   const [pdfText, setPdfText] = useState<string>("");
-  const [workingsText, setWorkingsText] = useState<string>("");
+  const [workingText, setWorkingText] = useState<string>("");
   const [output, setOutput] = useState<HintsResponse | null>(testOutput || null);
   const [marked, setMarked] = useState<MarkedResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -59,7 +62,6 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
   const [adding, setAdding] = useState<boolean>(false);
   const [files, setFiles] = useState<S3File[]>([]);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
-  const [noOfFiles, setNoOfFiles] = useState<number | null>(null);
   const [orderedBoundingBoxes, setOrderedBoundingBoxes] = useState<boolean>(false);
   
   // Handle exit button click -> Refreshes the page
@@ -67,72 +69,134 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
     window.location.reload();
   };
 
+  // Gets the uid so we don't have to call it every time
+  useEffect(() => {
+    const userID = localStorage.getItem("uid");
+    if (userID) {
+      setUid(userID);
+    }
+  }, []);
+
   // Gets PDF text and bounding boxes for each line in the PDF -> Later sent to Gemini to restructure it
-  const fetchPdfText = useCallback(async () => {
-    const uid = localStorage.getItem("uid");
-    if (!uid || !subject || !paperFolder) return;
-    setMarked(null);
-    setMarking(false);
-    setHardQues([]);
-    setBoundingBoxes([]);
-    setPdfText("");
-    setWorkingsText("");
-    setOutput(null);
-    setSelectedHint(null);
-    setSelectedTips(null);
+  // const fetchPdfText = useCallback(async () => {
+  //   if (!uid || !subject || !paperFolder) return;
+  //   setMarked(null);
+  //   setMarking(false);
+  //   setHardQues([]);
+  //   setBoundingBoxes([]);
+  //   setPdfText("");
+  //   setWorkingsText("");
+  //   setOutput(null);
+  //   setSelectedHint(null);
+  //   setSelectedTips(null);
 
-    const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
-    const url = `/api/read-pdf?uid=${uid}&prefix=${encodeURIComponent(prefix)}`;
+  //   const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
+  //   const url = `/api/read-pdf?uid=${uid}&prefix=${encodeURIComponent(prefix)}`;
 
-    const res = await fetch(url);
-    const data = await res.json();
-    console.log(data);
-    console.log(data.boundingBoxes)
-    setBoundingBoxes(data.boundingBoxes);
-    setPdfText(data.text);
+  //   const res = await fetch(url);
+  //   const data = await res.json();
+  //   console.log(data);
+  //   console.log(data.boundingBoxes)
+  //   setBoundingBoxes(data.boundingBoxes);
+  //   setPdfText(data.text);
 
-  }, [subject, paperFolder]);
+  // }, [subject, paperFolder]);
 
   // Gets the list of files in the S3 bucket for the current subject & paperFolder
-  const fetchFiles = useCallback(async () => {
-    const uid = localStorage.getItem("uid");
-    if (!uid || !subject || !paperFolder) return;
+  // const fetchFiles = useCallback(async () => {
+  //   if (!uid || !subject || !paperFolder) return;
 
-    const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
-    const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
-    const data = await res.json();
-    console.log(data);
-    const allowedExtensions = ['.pdf', '.jpeg', '.jpg', '.png'];
-    const filteredFiles = (data.files || []).filter((file: S3File) => {
-      const fileExtension = file.key.toLowerCase().substring(file.key.lastIndexOf('.'));
-      return allowedExtensions.includes(fileExtension);
-    });
+  //   const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
+  //   const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
+  //   const data = await res.json();
+  //   console.log(data);
+  //   const allowedExtensions = ['.pdf', '.jpeg', '.jpg', '.png'];
+  //   const filteredFiles = (data.files || []).filter((file: S3File) => {
+  //     const fileExtension = file.key.toLowerCase().substring(file.key.lastIndexOf('.'));
+  //     return allowedExtensions.includes(fileExtension);
+  //   });
 
-    setFiles(filteredFiles);
-    setNoOfFiles(data.KeyCount);
-    console.log(noOfFiles);
-  }, [subject, paperFolder, noOfFiles]);
+  //   setFiles(filteredFiles);
+
+  // }, [subject, paperFolder, noOfFiles]);
+
+  // Gets PDF text and bounding boxes for each line in the PDF -> Later sent to Gemini to restructure it
+  const { data: pdfData} = useQuery({
+    queryKey: ["pdfData", subject, paperFolder],
+    queryFn: async () => {
+      const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
+      const response = await fetch(`/api/read-pdf?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch PDF text");
+      }
+      return (await response.json());
+    },
+    enabled: uid != "" && subject != "" && paperFolder != "",
+    // Cashe for 30 min
+    gcTime: 30*60*1000,
+  });
 
   useEffect(() => {
-    const fetchWorkingText = async (file: File) => {
-      if (!file) return;
-      const uid = localStorage.getItem("uid");
-      const workingURL = `usersData/${uid}/${subject}/${paperFolder}/${file.name}`
-      const res = await fetch(`/api/workings-upload?key=${workingURL}`, {
-          method: 'GET',
-      });
-      const data = await res.json();
-      setWorkingsText(data.text);
-      console.log(data.text);
-    };
-
-    if (working) {
-      console.log(working.name);
-      fetchFiles();
-      setMarking(true);
-      fetchWorkingText(working);
+    if (pdfData) {
+      setBoundingBoxes(pdfData.boundingBoxes);
+      setPdfText(pdfData.text);
+      console.log("PDF Text:", pdfData.text);
     }
-  }, [working, subject, paperFolder, fetchFiles]);
+  }, [pdfData]);
+
+  // Gets the list of files in the S3 bucket for the current subject & paperFolder
+   const { data: s3Files } = useQuery({
+    queryKey: ["s3Files", subject, paperFolder, working],
+    queryFn: async () => {
+      const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
+      const response = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch s3Files");
+      }
+      return (await response.json());
+    },
+    enabled: uid != "" && subject != "" && paperFolder != "",
+    // Cashe for 30 min
+    gcTime: 30*60*1000,
+  });
+
+  useEffect(() => {
+    if (s3Files) {
+      const allowedExtensions = ['.pdf', '.jpeg', '.jpg', '.png'];
+      const filteredFiles = (s3Files.files || []).filter((file: S3File) => {
+        const fileExtension = file.key.toLowerCase().substring(file.key.lastIndexOf('.'));
+        return allowedExtensions.includes(fileExtension);
+      });
+      setFiles(filteredFiles);
+    }
+  }, [s3Files]);
+
+  // Sends the student's working to Textract to convert to text for Gemini to read
+  const { data: fetchedWorkingText, isLoading: loadingWorking } = useQuery({
+    queryKey: ["fetchedWorkingText", working],
+    queryFn: async () => {
+      const workingURL = `usersData/${uid}/${subject}/${paperFolder}/${working?.name}`
+      const response = await fetch(`/api/workings-upload?key=${workingURL}`, {
+        method: "GET",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch working");
+      }
+      const json = await response.json();
+      return json.text;
+    },
+    enabled: working != null,
+    // Cashe for 30 min
+    gcTime: 30*60*1000,
+  })
+
+  useEffect (() => {
+    if (fetchedWorkingText != null) {
+      console.log("Working:", fetchedWorkingText);
+      setWorkingText(fetchedWorkingText);
+      setMarking(true);
+    }
+  }, [fetchedWorkingText]);
 
   const markWorkings = useCallback(async () => {
     try {
@@ -156,7 +220,7 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
         PDF Text with correct answers:
         """${pdfText}"""
         Workings:
-        """${workingsText}"""   
+        """${workingText}"""   
       `;
 
       const response = await fetch('/api/generate-ai', {
@@ -172,7 +236,7 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
         setMarked(data);
         setHardQues(data.wrong);
         console.log(data);
-        setWorkingsText("");
+        setWorkingText("");
       } else {
         setError("Failed to mark paper.");
       }
@@ -182,7 +246,7 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
     }finally {
       setMarking(false);
     }
-  }, [pdfText, workingsText]);
+  }, [pdfText, workingText]);
 
   const toggleHardQues = (qNum: number) => {
     setHardQues((prev) => {
@@ -199,7 +263,6 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
     console.log(hardQues);
     setAdding(true);
     // Create a JSON metadata for tracking what we addin in
-    const uid = localStorage.getItem("uid");
     if (!uid || !subject) {
       setError("User ID or subject missing");
       setAdding(false);
@@ -266,10 +329,8 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
   useEffect(() => {
     if (paperFolder) {
       setLoading(true);
-      fetchFiles();
-      fetchPdfText();
     }
-  }, [paperFolder, fetchFiles, fetchPdfText]);
+  }, [paperFolder]);
 
   useEffect(() => {
     // Use Gemini to order the bounding boxes into questions -> Handles pages spread across multiple pages
@@ -425,37 +486,51 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
   }, [orderedBoundingBoxes, boundingBoxes, pdfText]);
 
   useEffect(() => {
-    if (workingsText) {
+    if (workingText) {
       markWorkings();
     }
-  }, [workingsText, markWorkings]);
+  }, [workingText, markWorkings]);
 
   return (
-    <div className="min-h-screen text-white pb-20 px-6">
+    <div className="min-h-screen text-main pb-20 w-[80%] mx-auto">
       <Header />
-      <h1 className="pt-20 text-gray-200">Grail Session</h1>
+      <h1 className="pt-20">Grail Session</h1>
       {!output && (
         <RevisionModal />
       )}
      
-      {loading && <p className="text-yellow-400 mt-2">Parsing and Generating hints...</p>}
+      {loading && 
+      <div className="flex flex-col items-center">
+        <p className="text-2xl text-yellow-400 mt-5">Parsing and Generating hints...</p>
+        <MoonLoader className="mt-5" color="#edf2f7" size={30}/>
+        <p className="text-xs text-main mt-5">Please be patient. This might take a few minutes.</p>
+      </div>}
+
       {error && <p className="text-error mt-2">{error}</p>}
-      {marking && <p className="text-yellow-400 mt-2">Marking...</p>}
+
+      {loadingWorking && <p className="text-yellow-400 mt-2">Marking...</p>}
+
       {adding && <p className="text-yellow-400 mt-2">Adding to Challenging Questions repo...</p>}
       
       {/* Wait for Bounding Boxes to be ordered before displaying*/}
       {output && orderedBoundingBoxes && (
         <div className="mt-8 flex justify-center gap-8">
           {/* Working Upload Area */}
-          <div className="w-1/2 h-120 bg-black rounded p-4 shadow-lg space-y-6">
-            <div>
-              <h2 className="font-bold mb-4 text-white text-lg">Upload Your Workings Here</h2>
-              <UploadWorking/>
-            </div>
+          <div className="w-1/2 bg-secondary rounded p-4 shadow-lg space-y-6">
+          
+            {/* Only appears if working is empty */}
+            {working == null &&
+              <div>
+                <h2 className="font-bold mb-4 text-lg">Upload Your Workings Here</h2>
+                <UploadWorking/>
+              </div>
+            }
+
+            {/* Appears once the working is marked */}
             <div>              
               {marked && paperFolder !== "Challenging Questions" && (
-              <div className="w-full bg-black rounded p-4 shadow-lg space-y-6">
-                <h2 className="font-bold mb-4 text-white text-lg">Add these to {subject}&apos;s Challenging questions Repo.</h2>
+              <div className="w-full bg-secondary rounded p-4 shadow-lg space-y-6">
+                <h2 className="font-bold mb-4 text-lg">Add these to {subject}&apos;s Challenging questions Repo.</h2>
 
                 <div className="flex flex-wrap gap-3 justify-center mt-4">
                   {Array.from({ length: marked.numberOfQuestions }, (_, i) => {
@@ -467,8 +542,8 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
                           <button
                             onClick={() => toggleHardQues(qNum)}
                             className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer
-                              ${isHard ? "bg-yellow-500" 
-                              : "bg-gray-500 hover:bg-gray-500/75"}`
+                              ${isHard ? "bg-yellow-600" 
+                              : "bg-tertiary hover:bg-teriary/75"}`
                             }
                           >
                             {qNum}
@@ -483,7 +558,7 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
                   onClick={()=>addHardQues(boundingBoxes)}
                   disabled={adding}
                   className={`mt-4 px-4 py-2 rounded w-full ${
-                    adding ? "bg-gray-500 cursor-not-allowed" : "bg-gray-800 hover:bg-gray-900 cursor-pointer"
+                    adding ? "bg-tertiary cursor-not-allowed" : "bg-tertiary hover:bg-tertiary/75 cursor-pointer"
                   }`}
                 >
                 {adding ? "Adding..." : "Add"}
@@ -495,10 +570,10 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
 
           <div className="w-1/2 flex flex-col gap-6">
             {/* File Preview */}
-            <div className="bg-black rounded p-4 shadow-lg w-full">
+            <div className="bg-secondary rounded p-4 shadow-lg w-full">
               {files.length > 0 && (
                 <div className="mb-4">
-                  <label className="font-bold mb-4 text-white text-lg block">
+                  <label className="font-bold mb-4 text-lg block">
                     Working on {subject} &rarr; {paperFolder}
                   </label>
                   <div className="flex flex-col gap-2 mt-4">
@@ -510,8 +585,8 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
                           onClick={() => setSelectedFileUrl(selectedFileUrl === file.url ? null : file.url)}
                           className={`text-left w-full px-3 py-2 rounded cursor-pointer ${
                             selectedFileUrl === file.url
-                              ? "bg-gray-500 text-white"
-                              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                              ? "bg-tertiary"
+                              : "bg-tertiary hover:bg-tertiary/75"
                           }`}
                         >
                           {fileName}
@@ -523,19 +598,19 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
               )}
 
               {selectedFileUrl && (
-                <div className="mt-4 text-gray-300">
+                <div className="mt-4">
                   <iframe
                     src={selectedFileUrl}
-                    className="w-full h-120 mt-2 border-2 border-gray-500 rounded"
+                    className="w-full h-120 mt-2 border-2 border-tertiary rounded"
                   ></iframe>
                 </div>
               )}
             </div>
 
             {/* Hints Section */}
-            <div className="bg-black rounded p-4 shadow-lg">
-              <h2 className="font-bold mb-4 text-white text-lg">Generated Hints:</h2>
-              <p className="text-gray-300 mb-4">Questions: {output.numberOfQuestions}</p>
+            <div className="bg-secondary rounded p-4 shadow-lg">
+              <h2 className="font-bold mb-4 text-lg">Generated Hints:</h2>
+              <p className="mb-4">Questions: {output.numberOfQuestions}</p>
 
               {/* Buttons */}
               {output?.hints?.length > 0 && (
@@ -548,9 +623,9 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
                       }
                       className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 ${
                         selectedHint === index
-                          ? "bg-gray-500"
-                          : "bg-gray-800 hover:bg-gray-900"
-                      } text-white font-semibold cursor-pointer`}
+                          ? "bg-tertiary"
+                          : "bg-tertiary hover:bg-tertiary/75"
+                      } font-semibold cursor-pointer`}
                     >
                       {index + 1}
                     </button>
@@ -559,7 +634,7 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
               )}
 
               {selectedHint !== null && (
-                <div className="mt-6 text-gray-200">
+                <div className="mt-6">
                   <h3 className="font-semibold mb-2 text-center">
                     Hint for Question {selectedHint + 1}:
                   </h3>
@@ -570,8 +645,8 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
             
             {/* Marked Section */}
             {marked && (
-              <div className="bg-black rounded p-4 shadow-lg">
-                <h2 className="font-bold mb-4 text-white text-lg">Score: {marked.correct.length}/{marked.numberOfQuestions}</h2>
+              <div className="bg-secondary p-4 shadow-lg">
+                <h2 className="font-bold mb-4text-lg">Score: {marked.correct.length}/{marked.numberOfQuestions}</h2>
 
                 <div className="flex flex-wrap gap-3 justify-center mt-4">
                   {Array.from({ length: marked.numberOfQuestions }, (_, i) => {
@@ -584,9 +659,9 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
                         <button
                           onClick={() => setSelectedTips(selectedTips === qNum ? null : qNum)}
                           className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer
-                            ${isCorrect ? "bg-green-900 hover:bg-green-900/75" 
-                              : isWrong ? "bg-red-900 hover:bg-red-900/75" 
-                              : "bg-gray-800 hover:bg-gray-700"}`}
+                            ${isCorrect ? "bg-success/75 hover:bg-success/50" 
+                              : isWrong ? "bg-error/75 hover:bg-error/50" 
+                              : "bg-teriary hover:bg-teriary/75"}`}
                         >
                           {qNum}
                         </button>
@@ -597,7 +672,7 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
                 </div>
                 <div>
                   {selectedTips !== null && (
-                    <div className="mt-2 text-gray-200 text-center">
+                    <div className="mt-2 text-center">
                       <h3 className="font-semibold mb-1">Tip for Question {selectedTips}:</h3>
                       <p>{marked.tips[selectedTips] ?? "Nice."}</p>
                     </div>
@@ -612,7 +687,7 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
         {output && (
           <button
             onClick={handleExit}
-            className="px-4 py-2 bg-red-700 hover:bg-red-800 rounded text-white cursor-pointer"
+            className="px-4 py-2 bg-error/75 hover:bg-error/50 rounded text-main cursor-pointer"
           >
             Exit Session
           </button>
