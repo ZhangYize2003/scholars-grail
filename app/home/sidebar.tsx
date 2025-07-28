@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FiHome, FiFileText, FiFolder, FiUsers } from "react-icons/fi";
+import { FiHome, FiFileText, FiFolder } from "react-icons/fi";
 
 interface SideBarProps {
     isOpen: boolean;
@@ -25,10 +25,6 @@ const SideBar = ({isOpen}: SideBarProps) => {
                 <Link href="/repository" className="sidebar_button">
                     <FiFolder size="20" /> 
                     Repository
-                </Link>
-                <Link href="/" className="sidebar_button">
-                    <FiUsers size="20" /> 
-                    Friends
                 </Link>
             </div>
         </div>
