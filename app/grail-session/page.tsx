@@ -5,7 +5,7 @@ import UploadWorking from "../components/UploadWorking";
 import RevisionModal from "../components/RevisionModal";
 import { useRevisionContext } from "../components/RevisionContext";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { MoonLoader } from "react-spinners";
 
 type HintsResponse = {
@@ -45,15 +45,13 @@ type S3File = {
 };
 // adding testOutput supports testing after output has been set
 export default function Page({ testOutput }: { testOutput?: HintsResponse | null }) {
-  const router = useRouter();
-  const {subject, paperFolder, working, setSubject ,setPaperFolder, setWorking} = useRevisionContext();
+  const {subject, paperFolder, working} = useRevisionContext();
   const [uid, setUid] = useState<string | null>(null);
   const [pdfText, setPdfText] = useState<string>("");
   const [workingText, setWorkingText] = useState<string>("");
   const [output, setOutput] = useState<HintsResponse | null>(testOutput || null);
   const [marked, setMarked] = useState<MarkedResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [marking, setMarking] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedHint, setSelectedHint] = useState<number | null>(null);
   const [selectedTips, setSelectedTips] = useState<number | null>(null);
@@ -76,49 +74,6 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
       setUid(userID);
     }
   }, []);
-
-  // Gets PDF text and bounding boxes for each line in the PDF -> Later sent to Gemini to restructure it
-  // const fetchPdfText = useCallback(async () => {
-  //   if (!uid || !subject || !paperFolder) return;
-  //   setMarked(null);
-  //   setMarking(false);
-  //   setHardQues([]);
-  //   setBoundingBoxes([]);
-  //   setPdfText("");
-  //   setWorkingsText("");
-  //   setOutput(null);
-  //   setSelectedHint(null);
-  //   setSelectedTips(null);
-
-  //   const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
-  //   const url = `/api/read-pdf?uid=${uid}&prefix=${encodeURIComponent(prefix)}`;
-
-  //   const res = await fetch(url);
-  //   const data = await res.json();
-  //   console.log(data);
-  //   console.log(data.boundingBoxes)
-  //   setBoundingBoxes(data.boundingBoxes);
-  //   setPdfText(data.text);
-
-  // }, [subject, paperFolder]);
-
-  // Gets the list of files in the S3 bucket for the current subject & paperFolder
-  // const fetchFiles = useCallback(async () => {
-  //   if (!uid || !subject || !paperFolder) return;
-
-  //   const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
-  //   const res = await fetch(`/api/s3-render?uid=${uid}&prefix=${encodeURIComponent(prefix)}`);
-  //   const data = await res.json();
-  //   console.log(data);
-  //   const allowedExtensions = ['.pdf', '.jpeg', '.jpg', '.png'];
-  //   const filteredFiles = (data.files || []).filter((file: S3File) => {
-  //     const fileExtension = file.key.toLowerCase().substring(file.key.lastIndexOf('.'));
-  //     return allowedExtensions.includes(fileExtension);
-  //   });
-
-  //   setFiles(filteredFiles);
-
-  // }, [subject, paperFolder, noOfFiles]);
 
   // Gets PDF text and bounding boxes for each line in the PDF -> Later sent to Gemini to restructure it
   const { data: pdfData} = useQuery({
@@ -194,7 +149,6 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
     if (fetchedWorkingText != null) {
       console.log("Working:", fetchedWorkingText);
       setWorkingText(fetchedWorkingText);
-      setMarking(true);
     }
   }, [fetchedWorkingText]);
 
@@ -243,8 +197,6 @@ export default function Page({ testOutput }: { testOutput?: HintsResponse | null
     } catch (error) {
       console.error(error);
       setError("Error occurred while generating content.");
-    }finally {
-      setMarking(false);
     }
   }, [pdfText, workingText]);
 
