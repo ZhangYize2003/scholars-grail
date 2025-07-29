@@ -273,7 +273,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
       setOutput(hints);
     },
     onError: (error) => {
-        setError(error.message);
+      setError(error.message);
     },
   })
 
@@ -285,18 +285,18 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
   }, [orderedBoundingBoxes]);
 
   // Sends the student's working to Textract to convert to text for Gemini to read
-  const { data: fetchedWorkingText, isLoading: loadingWorking } = useQuery({
+  const { data: fetchedWorkingText, isLoading: parsingWorking } = useQuery({
     queryKey: ["fetchedWorkingText", working],
     queryFn: async () => {
-      const workingURL = `usersData/${uid}/${subject}/${paperFolder}/${working?.name}`
-      const response = await fetch(`/api/workings-upload?key=${workingURL}`, {
+        const workingURL = `usersData/${uid}/${subject}/${paperFolder}/${working?.name}`
+        const response = await fetch(`/api/workings-upload?key=${workingURL}`, {
         method: "GET",
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch working");
-      }
-      const json = await response.json();
-      return json.text;
+        });
+        if (!response.ok) {
+          throw new Error("Failed to fetch working");
+        }
+        const json = await response.json();
+        return json.text;
     },
     enabled: uid != null && subject != "" && paperFolder != "" && working != null,
     // Cashe for 30 min
@@ -305,19 +305,15 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
 
   useEffect (() => {
     if (fetchedWorkingText != null) {
-      console.log("Working:", fetchedWorkingText);
-      setWorkingText(fetchedWorkingText);
+        console.log("Working:", fetchedWorkingText);
+        setWorkingText(fetchedWorkingText);
     }
   }, [fetchedWorkingText]);
 
   // Marking student's working
-  const markWorkings = useCallback(async () => {
-    try {
-      setError(null);
-      setMarked(null);
-      
-      // Role Prompting
-      const prompt = `
+  const { mutate: markWorkingMutation, isPending: marking} = useMutation<MarkedResponse, Error>({
+    mutationFn: async () => {
+        const prompt = `
         You are an assistant that processes educational content. 
         Given the following extracted PDF text, and the answers of a student, determine which questions are wrong and which are correct. 
         Additionally, give them tips on where they might have gone wrong. Use "you" to address them directly.
@@ -334,7 +330,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
         """${pdfText}"""
         Workings:
         """${workingText}"""   
-      `;
+        `;
 
       const response = await fetch('/api/generate-ai', {
         method: 'POST',
@@ -343,21 +339,31 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
         },
         body: JSON.stringify({ body: prompt })
       });
+        if (!response.ok) {
+            throw new Error("Failed to mark working");
+        }
+        return (await response.json());
+    },
+    // Retry once if failed
+    retry: 1,
+    retryDelay: 1000,
+    onSuccess: (markedWorking) => {
+        setMarked(markedWorking);
+        setHardQues(markedWorking.wrong);
+        console.log(markedWorking);
+    },
+    onError: (error) => {
+        setError(error.message);
+    },
+  })
 
-      const data: MarkedResponse = await response.json();
-      if(response.ok) {
-        setMarked(data);
-        setHardQues(data.wrong);
-        console.log(data);
-        setWorkingText("");
-      } else {
-        setError("Failed to mark paper.");
-      }
-    } catch (error) {
-      console.error(error);
-      setError("Error occurred while generating content.");
+  // Mark student's working once parsed
+  useEffect(() => {
+    if (workingText) {
+        setError(null);
+        markWorkingMutation();
     }
-  }, [pdfText, workingText]);
+  }, [workingText]);
 
   const toggleHardQues = (qNum: number) => {
     setHardQues((prev) => {
@@ -437,12 +443,6 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
     setAdding(false);
   };
 
-  useEffect(() => {
-    if (workingText) {
-      markWorkings();
-    }
-  }, [workingText, markWorkings]);
-
   return (
     <div className="min-h-screen text-main pb-20 w-[80%] mx-auto">
       <Header />
@@ -451,7 +451,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
         <RevisionModal />
       )}
      
-      {(fetching || parsing || ordering || hinting) && 
+      {(fetching || parsing || ordering || hinting) && !parsingWorking &&
       <div className="flex flex-col items-center">
         {hinting ? 
         <p className="text-2xl text-yellow-400 mt-5">Generating hints...</p> :
@@ -461,9 +461,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
         <p className="text-xs text-main mt-5">Please be patient. This might take a few minutes.</p>
       </div>}
 
-      {error && <p className="flex items-center text-error mt-2">{error}</p>}
-
-      {loadingWorking && <p className="text-yellow-400 mt-2">Marking...</p>}
+      {error && <p className="flex flex-col items-center text-error mt-2">{error}</p>}
 
       {adding && <p className="text-yellow-400 mt-2">Adding to Challenging Questions repo...</p>}
       
@@ -480,6 +478,8 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
                 <UploadWorking/>
               </div>
             }
+
+            {(parsingWorking || marking) && <p className="text-yellow-400 mt-2">Marking...</p>}
 
             {/* Appears once the working is marked */}
             <div>              
