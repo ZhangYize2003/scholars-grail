@@ -4,7 +4,7 @@ import Header from "../home/header";
 import UploadWorking from "./UploadWorking";
 import RevisionModal from "./RevisionModal";
 import { useRevisionContext } from "./RevisionContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation} from "@tanstack/react-query";
 import { MoonLoader } from "react-spinners";
 
 type HintsResponse = {
@@ -85,7 +85,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
       }
       return (await response.json());
     },
-    enabled: uid != "" && subject != "" && paperFolder != "",
+    enabled: uid != null && subject != "" && paperFolder != "",
     // Cashe for 30 min
     gcTime: 30*60*1000,
   });
@@ -94,6 +94,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
     if (pdfData) {
       setBoundingBoxes(pdfData.boundingBoxes);
       setPdfText(pdfData.text);
+      console.log("PDF Data:", pdfData);
       console.log("PDF Text:", pdfData.text);
     }
   }, [pdfData]);
@@ -109,7 +110,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
       }
       return (await response.json());
     },
-    enabled: uid != "" && subject != "" && paperFolder != "",
+    enabled: uid != null && subject != "" && paperFolder != "",
     // Cashe for 30 min
     gcTime: 30*60*1000,
   });
@@ -125,174 +126,162 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
     }
   }, [s3Files]);
 
-  // Sends the student's working to Textract to convert to text for Gemini to read
-  const { data: fetchedWorkingText, isLoading: loadingWorking } = useQuery({
-    queryKey: ["fetchedWorkingText", working],
-    queryFn: async () => {
-      const workingURL = `usersData/${uid}/${subject}/${paperFolder}/${working?.name}`
-      const response = await fetch(`/api/workings-upload?key=${workingURL}`, {
-        method: "GET",
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch working");
-      }
-      const json = await response.json();
-      return json.text;
-    },
-    enabled: working != null,
-    // Cashe for 30 min
-    gcTime: 30*60*1000,
-  })
+//   useEffect(() => {
+//     // Use Gemini to order the bounding boxes into questions -> Handles pages spread across multiple pages
+//     const orderBoundingBox= async () =>{
+//       try {
+//         setError(null);
+//         setOutput(null);
 
-  useEffect (() => {
-    if (fetchedWorkingText != null) {
-      console.log("Working:", fetchedWorkingText);
-      setWorkingText(fetchedWorkingText);
-    }
-  }, [fetchedWorkingText]);
+//         if (!pdfText) return;
+//         console.log("Ordering bounding boxes");
+//         setOrderedBoundingBoxes(true);
+//         // Role Prompting
+//         const prompt = `
+//         Given the following JSON of text blocks with bounding boxes, you are tasked to group them into questions, their corresponding bounding boxes, and return a JSON object. DO NOT RETURN ANYTHING ELSE. ONLY JSON.
 
-  const markWorkings = useCallback(async () => {
-    try {
-      setError(null);
-      setMarked(null);
-      
-      // Role Prompting
-      const prompt = `
-        You are an assistant that processes educational content. 
-        Given the following extracted PDF text, and the answers of a student, determine which questions are wrong and which are correct. 
-        Additionally, give them tips on where they might have gone wrong. Use "you" to address them directly.
+//         For each question:
+//         1. Combine all related line blocks into a single 'question' array.
+//         2. Create bounding boxes for each question such that it covers all the line blocks up till the start of the next question. This is to cover the diagrams drawn under the question.
+//         3. Since the questions can be on multiple pages, include each page number the question appears, in the "pages" component of the following JSON format.
 
-        Return the response strictly in the following JSON format:
-        {
-          "numberOfQuestions": <number>,
-          "correct": [1, 3, 4, 7,...],
-          "wrong": [2, 5, 8, ...],
-          "tips": ["2":<tip 2>, "5":<tip 5>, "8":<tip 8>...]
-        }
+//         Use the following format:
+//         {
+//           "question": "...",
+//           "pages": [
+//             {
+//               "page": <page number 1>,
+//               "boundingBox": {
+//                 "Left": <float>,
+//                 "Top": <float>,
+//                 "Width": <float>,
+//                 "Height": <float>
+//               }
+//             },
+//             {
+//               "page": <page number 2>,
+//               "boundingBox": {
+//                 "Left": <float>,
+//                 "Top": <float>,
+//                 "Width": <float>,
+//                 "Height": <float>
+//               }
+//             }
+//           ]
+//         }
 
-        PDF Text with correct answers:
-        """${pdfText}"""
-        Workings:
-        """${workingText}"""   
-      `;
+//         Example:
+//         Suppose the following blocks occur in order:
 
-      const response = await fetch('/api/generate-ai', {
-        method: 'POST',
-        headers: {
-          'Content-type': 'application/json'
-        },
-        body: JSON.stringify({ body: prompt })
-      });
+//         - { text: "Question 5", page: 1 }
+//         - { text: "A company wants to implement a solution that can automatically extract information from", page: 1 }
+//         - { text: "documents like invoices and receipts. Which Google Cloud AI API would be most appropriate for this", page: 2 }
+//         - { text: "purpose?", page: 2 }
+//         - { text: "A) Cloud Vision API", page: 2 }
+//         - ...
+//         - { text: "Question 6", page: 2 }
 
-      const data: MarkedResponse = await response.json();
-      if(response.ok) {
-        setMarked(data);
-        setHardQues(data.wrong);
-        console.log(data);
-        setWorkingText("");
-      } else {
-        setError("Failed to mark paper.");
-      }
-    } catch (error) {
-      console.error(error);
-      setError("Error occurred while generating content.");
-    }
-  }, [pdfText, workingText]);
+//         Then, the grouped question should span page 1 and 2, and its bounding boxes should cover all the related blocks on both pages, even though they are split.
+//         The output should be in the following format:
+//         {
+//           "question": "Question 5 A company wants to implement a solution that can automatically extract information from documents like invoices and receipts. Which Google Cloud AI API would be most appropriate for this purpose? A) Cloud Vision API",
+//           "pages": [
+//             {
+//               "page": 1,
+//               "boundingBox": {
+//                 "Left": 0.1,
+//                 "Top": 0.2,
+//                 "Width": 0.8,
+//                 "Height": 0.1
+//               }
+//             },
+//             {
+//               "page": 2,
+//               "boundingBox": {
+//                 "Left": 0.1,
+//                 "Top": 0.3,
+//                 "Width": 0.8,
+//                 "Height": 0.1
+//               }
+//             }
+//           ]
+//         }
 
-  const toggleHardQues = (qNum: number) => {
-    setHardQues((prev) => {
-      if (prev?.includes(qNum)){
-        return prev.filter((num) => num !== qNum);
-      }
-      else {
-        return [...prev, qNum];
-      }
-    });
-  };
+//         Bounding Box Info:
+//         """${JSON.stringify(boundingBoxes)}"""
+//         `;
 
-  const addHardQues = async (boundingBoxes: QuestionBoundingBox[]) =>{
-    console.log(hardQues);
-    setAdding(true);
-    // Create a JSON metadata for tracking what we addin in
-    if (!uid || !subject) {
-      setError("User ID or subject missing");
-      setAdding(false);
-      return;
-    }
-    while(orderedBoundingBoxes === false){
-      console.log("Waiting for ordered bounding boxes to be set");
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-    const url = `usersData/${uid}/${subject}/Challenging Questions/${paperFolder}.json`;
-    console.log("Complete BoundingBoxes:", boundingBoxes);
-    const filteredBoundingBoxes: QuestionBoundingBox[] = [];
-    console.log("Filtering BoundingBoxes for hard questions");
-    boundingBoxes.forEach((box, index) => {
-      const questionNumber = index + 1;
-      console.log("Question Number:", questionNumber);
-      if (hardQues.includes(questionNumber)) {
-        filteredBoundingBoxes.push(box);
-      }
-    });
+//         const response = await fetch('/api/generate-ai', {
+//           method: 'POST',
+//           headers: {
+//             'Content-type': 'application/json'
+//           },
+//           body: JSON.stringify({ body: prompt })
+//         });
+//         const data: BoundingBoxResponse = await response.json();
+//         console.log(data);
+//         if(response.ok) {
+//           setBoundingBoxes(data);
+//         }
+//       } catch (error) {
+//         console.error(error);
+//         setError("Error occurred while creating boundingbox.");
+//       } finally {
+//         setLoading(false);
+//       }
+//     }; 
+//     const generateHint = async () => {
+//       try {
+//         setError(null);
+//         setOutput(null);
 
-    console.log("Filtered BoundingBoxes:", filteredBoundingBoxes);
-    const formData = new FormData();
-    formData.append("url", url);
-    formData.append("hardQues", JSON.stringify(hardQues));
-    formData.append("boundingBoxes", JSON.stringify(filteredBoundingBoxes));
-    try {
-      const postResponse = await fetch("/api/json-readwrite", {
-        method: "POST",
-        body: formData,
-      })
-      if (!postResponse.ok){
-        const errorData = await postResponse.json();
-        throw new Error(errorData.error || "Failed to upload file");
-      }
-      const postData = await postResponse.json();
-      console.log("File uploaded successfully:", postData);
+//         if (!pdfText) return;
 
-      const cropResponse = await fetch("/api/crop-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME!,
-          uid,
-          subject,
-          paperFolder,
-        }),
-      });
+//         // Role Prompting
+//         const prompt = `
+//           You are an assistant that processes educational content. 
+//           Given the following extracted PDF text, identify all the questions present and generate a short but helpful hint for each question.
+                  
+//           Return the response strictly in the following JSON format:
+//           {
+//             "numberOfQuestions": <number>,
+//             "hints": ["hint 1", "hint 2", ...]
+//           }
 
-      if (!cropResponse.ok) {
-        const cropError = await cropResponse.json();
-        throw new Error(cropError.error || "Failed to crop PDF");
-      }
-      const cropData = await cropResponse.json();
-      console.log("Crop PDF result:", cropData);
-      
-    } catch(error){
-      console.error("Error during file operation:", error);
-    }
-    setAdding(false);
-  };
+//           PDF Text:
+//           """${pdfText}"""
+//         `;
 
-  // Only check for paperFolder, since using subject as a dependency causes textract to be called twice
-  useEffect(() => {
-    if (paperFolder) {
-      setLoading(true);
-    }
-  }, [paperFolder]);
+//         const response = await fetch('/api/generate-ai', {
+//           method: 'POST',
+//           headers: {
+//             'Content-type': 'application/json'
+//           },
+//           body: JSON.stringify({ body: prompt })
+//         });
 
-  useEffect(() => {
-    // Use Gemini to order the bounding boxes into questions -> Handles pages spread across multiple pages
-    const orderBoundingBox= async () =>{
-      try {
-        setError(null);
-        setOutput(null);
+//         const data: HintsResponse = await response.json();
+//         console.log(data);
+//         if(response.ok) {
+//           setOutput(data);
+//         } else {
+//           setError("Failed to generate hints.");
+//         }
+//       } catch (error) {
+//         console.error(error);
+//         setError("Error occurred while generating content.");
+//       }
+//     };
 
-        if (!pdfText) return;
-        console.log("Ordering bounding boxes");
-        setOrderedBoundingBoxes(true);
+//     if (pdfText && !orderedBoundingBoxes) {
+//       orderBoundingBox();
+//       generateHint();
+//     }
+//   }, [orderedBoundingBoxes, boundingBoxes, pdfText]);
+
+  // Use Gemini to order the bounding boxes into questions -> Handles pages spread across multiple pages
+  const orderBoundingBoxMutation = useMutation<BoundingBoxResponse, Error, QuestionBoundingBox[]>({
+    mutationFn: async (boundingBoxes) => {
         // Role Prompting
         const prompt = `
         Given the following JSON of text blocks with bounding boxes, you are tasked to group them into questions, their corresponding bounding boxes, and return a JSON object. DO NOT RETURN ANYTHING ELSE. ONLY JSON.
@@ -366,75 +355,248 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
 
         Bounding Box Info:
         """${JSON.stringify(boundingBoxes)}"""
-        `;
-
-        const response = await fetch('/api/generate-ai', {
-          method: 'POST',
+        `; 
+        
+        const response = await fetch("/api/generate-ai", {
+          method: "POST",
           headers: {
-            'Content-type': 'application/json'
+            "Content-type": "application/json"
           },
           body: JSON.stringify({ body: prompt })
         });
-        const data: BoundingBoxResponse = await response.json();
-        console.log(data);
-        if(response.ok) {
-          setBoundingBoxes(data);
+        if (!response.ok) {
+            throw new Error("Failed to order bounding boxes");
         }
-      } catch (error) {
-        console.error(error);
-        setError("Error occurred while creating boundingbox.");
-      } finally {
-        setLoading(false);
-      }
-    }; 
-    const generateHint = async () => {
-      try {
-        setError(null);
-        setOutput(null);
+        return (await response.json());
+    },
+    // Retry once if failed
+    retry: 1,
+    retryDelay: 1000,
+    onSuccess: (newBoundingBoxes) => {
+      setBoundingBoxes(newBoundingBoxes);
+      setOrderedBoundingBoxes(true);
+    },
+    onError: (error) => {
+        setError(error.message);
+    },
+  });
 
-        if (!pdfText) return;
+  // Resets errors and output. Orders the question bonuding boxes
+  useEffect(() => {
+    if (!pdfText) {
+        return;
+    }
+    setError(null);
+    setOutput(null);
+    orderBoundingBoxMutation.mutate(boundingBoxes);
+  }, [pdfText]);
 
-        // Role Prompting
+  // Generate hints for each question using Gemini
+  const generateHintsMutation = useMutation<HintsResponse, Error, string>({
+    mutationFn: async (pdfText) => {
         const prompt = `
-          You are an assistant that processes educational content. 
-          Given the following extracted PDF text, identify all the questions present and generate a short but helpful hint for each question.
-                  
-          Return the response strictly in the following JSON format:
-          {
+        You are an assistant that processes educational content. 
+        Given the following extracted PDF text, identify all the questions present and generate a short but helpful hint for each question.
+                        
+        Return the response strictly in the following JSON format:
+        {
             "numberOfQuestions": <number>,
             "hints": ["hint 1", "hint 2", ...]
-          }
+        }
 
-          PDF Text:
-          """${pdfText}"""
+        PDF Text:
+        """${pdfText}"""
         `;
 
-        const response = await fetch('/api/generate-ai', {
-          method: 'POST',
+        const response = await fetch("/api/generate-ai", {
+          method: "POST",
           headers: {
-            'Content-type': 'application/json'
+            "Content-type": "application/json"
           },
           body: JSON.stringify({ body: prompt })
         });
-
-        const data: HintsResponse = await response.json();
-        console.log(data);
-        if(response.ok) {
-          setOutput(data);
-        } else {
-          setError("Failed to generate hints.");
+        if (!response.ok) {
+            throw new Error("Failed to order bounding boxes");
         }
-      } catch (error) {
-        console.error(error);
-        setError("Error occurred while generating content.");
-      }
-    };
+        return (await response.json());
+    },
+    // Retry once if failed
+    retry: 1,
+    retryDelay: 1000,
+    onSuccess: (hints) => {
+      setOutput(hints);
+    },
+    onError: (error) => {
+        setError(error.message);
+    },
+  })
 
-    if (pdfText && !orderedBoundingBoxes) {
-      orderBoundingBox();
-      generateHint();
+  // Generate hints for each question after bounding boxes are ordered
+  useEffect(() => {
+    if (pdfText && orderedBoundingBoxes ) {
+      generateHintsMutation.mutate(pdfText);
     }
-  }, [orderedBoundingBoxes, boundingBoxes, pdfText]);
+  }, [orderedBoundingBoxes]);
+
+  // Sends the student's working to Textract to convert to text for Gemini to read
+  const { data: fetchedWorkingText, isLoading: loadingWorking } = useQuery({
+    queryKey: ["fetchedWorkingText", working],
+    queryFn: async () => {
+      const workingURL = `usersData/${uid}/${subject}/${paperFolder}/${working?.name}`
+      const response = await fetch(`/api/workings-upload?key=${workingURL}`, {
+        method: "GET",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch working");
+      }
+      const json = await response.json();
+      return json.text;
+    },
+    enabled: uid != null && subject != "" && paperFolder != "" && working != null,
+    // Cashe for 30 min
+    gcTime: 30*60*1000,
+  })
+
+  useEffect (() => {
+    if (fetchedWorkingText != null) {
+      console.log("Working:", fetchedWorkingText);
+      setWorkingText(fetchedWorkingText);
+    }
+  }, [fetchedWorkingText]);
+
+  // Marking student's working
+  const markWorkings = useCallback(async () => {
+    try {
+      setError(null);
+      setMarked(null);
+      
+      // Role Prompting
+      const prompt = `
+        You are an assistant that processes educational content. 
+        Given the following extracted PDF text, and the answers of a student, determine which questions are wrong and which are correct. 
+        Additionally, give them tips on where they might have gone wrong. Use "you" to address them directly.
+
+        Return the response strictly in the following JSON format:
+        {
+          "numberOfQuestions": <number>,
+          "correct": [1, 3, 4, 7,...],
+          "wrong": [2, 5, 8, ...],
+          "tips": ["2":<tip 2>, "5":<tip 5>, "8":<tip 8>...]
+        }
+
+        PDF Text with correct answers:
+        """${pdfText}"""
+        Workings:
+        """${workingText}"""   
+      `;
+
+      const response = await fetch('/api/generate-ai', {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify({ body: prompt })
+      });
+
+      const data: MarkedResponse = await response.json();
+      if(response.ok) {
+        setMarked(data);
+        setHardQues(data.wrong);
+        console.log(data);
+        setWorkingText("");
+      } else {
+        setError("Failed to mark paper.");
+      }
+    } catch (error) {
+      console.error(error);
+      setError("Error occurred while generating content.");
+    }
+  }, [pdfText, workingText]);
+
+  const toggleHardQues = (qNum: number) => {
+    setHardQues((prev) => {
+      if (prev?.includes(qNum)){
+        return prev.filter((num) => num !== qNum);
+      }
+      else {
+        return [...prev, qNum];
+      }
+    });
+  };
+
+  // Compiles challenging qns into a separate pdf
+  const addHardQues = async (boundingBoxes: QuestionBoundingBox[]) =>{
+    console.log(hardQues);
+    setAdding(true);
+    // Create a JSON metadata for tracking what we addin in
+    if (!uid || !subject) {
+      setError("User ID or subject missing");
+      setAdding(false);
+      return;
+    }
+    while(orderedBoundingBoxes === false){
+      console.log("Waiting for ordered bounding boxes to be set");
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    const url = `usersData/${uid}/${subject}/Challenging Questions/${paperFolder}.json`;
+    console.log("Complete BoundingBoxes:", boundingBoxes);
+    const filteredBoundingBoxes: QuestionBoundingBox[] = [];
+    console.log("Filtering BoundingBoxes for hard questions");
+    boundingBoxes.forEach((box, index) => {
+      const questionNumber = index + 1;
+      console.log("Question Number:", questionNumber);
+      if (hardQues.includes(questionNumber)) {
+        filteredBoundingBoxes.push(box);
+      }
+    });
+
+    console.log("Filtered BoundingBoxes:", filteredBoundingBoxes);
+    const formData = new FormData();
+    formData.append("url", url);
+    formData.append("hardQues", JSON.stringify(hardQues));
+    formData.append("boundingBoxes", JSON.stringify(filteredBoundingBoxes));
+    try {
+      const postResponse = await fetch("/api/json-readwrite", {
+        method: "POST",
+        body: formData,
+      })
+      if (!postResponse.ok){
+        const errorData = await postResponse.json();
+        throw new Error(errorData.error || "Failed to upload file");
+      }
+      const postData = await postResponse.json();
+      console.log("File uploaded successfully:", postData);
+
+      const cropResponse = await fetch("/api/crop-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME!,
+          uid,
+          subject,
+          paperFolder,
+        }),
+      });
+
+      if (!cropResponse.ok) {
+        const cropError = await cropResponse.json();
+        throw new Error(cropError.error || "Failed to crop PDF");
+      }
+      const cropData = await cropResponse.json();
+      console.log("Crop PDF result:", cropData);
+      
+    } catch(error){
+      console.error("Error during file operation:", error);
+    }
+    setAdding(false);
+  };
+
+  // Only check for paperFolder, since using subject as a dependency causes textract to be called twice
+  useEffect(() => {
+    if (paperFolder) {
+      setLoading(true);
+    }
+  }, [paperFolder]);
 
   useEffect(() => {
     if (workingText) {
