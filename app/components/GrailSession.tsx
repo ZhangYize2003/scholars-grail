@@ -50,7 +50,6 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
   const [workingText, setWorkingText] = useState<string>("");
   const [output, setOutput] = useState<HintsResponse | null>(testOutput || null);
   const [marked, setMarked] = useState<MarkedResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedHint, setSelectedHint] = useState<number | null>(null);
   const [selectedTips, setSelectedTips] = useState<number | null>(null);
@@ -75,7 +74,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
   }, []);
 
   // Gets PDF text and bounding boxes for each line in the PDF -> Later sent to Gemini to restructure it
-  const { data: pdfData} = useQuery({
+  const { data: pdfData, isLoading: parsing} = useQuery({
     queryKey: ["pdfData", subject, paperFolder],
     queryFn: async () => {
       const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
@@ -100,7 +99,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
   }, [pdfData]);
 
   // Gets the list of files in the S3 bucket for the current subject & paperFolder
-   const { data: s3Files } = useQuery({
+   const { data: s3Files, isLoading: fetching } = useQuery({
     queryKey: ["s3Files", subject, paperFolder, working],
     queryFn: async () => {
       const prefix = `usersData/${uid}/${subject}/${paperFolder}/`;
@@ -126,161 +125,8 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
     }
   }, [s3Files]);
 
-//   useEffect(() => {
-//     // Use Gemini to order the bounding boxes into questions -> Handles pages spread across multiple pages
-//     const orderBoundingBox= async () =>{
-//       try {
-//         setError(null);
-//         setOutput(null);
-
-//         if (!pdfText) return;
-//         console.log("Ordering bounding boxes");
-//         setOrderedBoundingBoxes(true);
-//         // Role Prompting
-//         const prompt = `
-//         Given the following JSON of text blocks with bounding boxes, you are tasked to group them into questions, their corresponding bounding boxes, and return a JSON object. DO NOT RETURN ANYTHING ELSE. ONLY JSON.
-
-//         For each question:
-//         1. Combine all related line blocks into a single 'question' array.
-//         2. Create bounding boxes for each question such that it covers all the line blocks up till the start of the next question. This is to cover the diagrams drawn under the question.
-//         3. Since the questions can be on multiple pages, include each page number the question appears, in the "pages" component of the following JSON format.
-
-//         Use the following format:
-//         {
-//           "question": "...",
-//           "pages": [
-//             {
-//               "page": <page number 1>,
-//               "boundingBox": {
-//                 "Left": <float>,
-//                 "Top": <float>,
-//                 "Width": <float>,
-//                 "Height": <float>
-//               }
-//             },
-//             {
-//               "page": <page number 2>,
-//               "boundingBox": {
-//                 "Left": <float>,
-//                 "Top": <float>,
-//                 "Width": <float>,
-//                 "Height": <float>
-//               }
-//             }
-//           ]
-//         }
-
-//         Example:
-//         Suppose the following blocks occur in order:
-
-//         - { text: "Question 5", page: 1 }
-//         - { text: "A company wants to implement a solution that can automatically extract information from", page: 1 }
-//         - { text: "documents like invoices and receipts. Which Google Cloud AI API would be most appropriate for this", page: 2 }
-//         - { text: "purpose?", page: 2 }
-//         - { text: "A) Cloud Vision API", page: 2 }
-//         - ...
-//         - { text: "Question 6", page: 2 }
-
-//         Then, the grouped question should span page 1 and 2, and its bounding boxes should cover all the related blocks on both pages, even though they are split.
-//         The output should be in the following format:
-//         {
-//           "question": "Question 5 A company wants to implement a solution that can automatically extract information from documents like invoices and receipts. Which Google Cloud AI API would be most appropriate for this purpose? A) Cloud Vision API",
-//           "pages": [
-//             {
-//               "page": 1,
-//               "boundingBox": {
-//                 "Left": 0.1,
-//                 "Top": 0.2,
-//                 "Width": 0.8,
-//                 "Height": 0.1
-//               }
-//             },
-//             {
-//               "page": 2,
-//               "boundingBox": {
-//                 "Left": 0.1,
-//                 "Top": 0.3,
-//                 "Width": 0.8,
-//                 "Height": 0.1
-//               }
-//             }
-//           ]
-//         }
-
-//         Bounding Box Info:
-//         """${JSON.stringify(boundingBoxes)}"""
-//         `;
-
-//         const response = await fetch('/api/generate-ai', {
-//           method: 'POST',
-//           headers: {
-//             'Content-type': 'application/json'
-//           },
-//           body: JSON.stringify({ body: prompt })
-//         });
-//         const data: BoundingBoxResponse = await response.json();
-//         console.log(data);
-//         if(response.ok) {
-//           setBoundingBoxes(data);
-//         }
-//       } catch (error) {
-//         console.error(error);
-//         setError("Error occurred while creating boundingbox.");
-//       } finally {
-//         setLoading(false);
-//       }
-//     }; 
-//     const generateHint = async () => {
-//       try {
-//         setError(null);
-//         setOutput(null);
-
-//         if (!pdfText) return;
-
-//         // Role Prompting
-//         const prompt = `
-//           You are an assistant that processes educational content. 
-//           Given the following extracted PDF text, identify all the questions present and generate a short but helpful hint for each question.
-                  
-//           Return the response strictly in the following JSON format:
-//           {
-//             "numberOfQuestions": <number>,
-//             "hints": ["hint 1", "hint 2", ...]
-//           }
-
-//           PDF Text:
-//           """${pdfText}"""
-//         `;
-
-//         const response = await fetch('/api/generate-ai', {
-//           method: 'POST',
-//           headers: {
-//             'Content-type': 'application/json'
-//           },
-//           body: JSON.stringify({ body: prompt })
-//         });
-
-//         const data: HintsResponse = await response.json();
-//         console.log(data);
-//         if(response.ok) {
-//           setOutput(data);
-//         } else {
-//           setError("Failed to generate hints.");
-//         }
-//       } catch (error) {
-//         console.error(error);
-//         setError("Error occurred while generating content.");
-//       }
-//     };
-
-//     if (pdfText && !orderedBoundingBoxes) {
-//       orderBoundingBox();
-//       generateHint();
-//     }
-//   }, [orderedBoundingBoxes, boundingBoxes, pdfText]);
-
   // Use Gemini to order the bounding boxes into questions -> Handles pages spread across multiple pages
-  const orderBoundingBoxMutation = useMutation<BoundingBoxResponse, Error, QuestionBoundingBox[]>({
+  const { mutate: orderBoundingBoxMutation, isPending: ordering } = useMutation<BoundingBoxResponse, Error, QuestionBoundingBox[]>({
     mutationFn: async (boundingBoxes) => {
         // Role Prompting
         const prompt = `
@@ -388,11 +234,11 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
     }
     setError(null);
     setOutput(null);
-    orderBoundingBoxMutation.mutate(boundingBoxes);
+    orderBoundingBoxMutation(boundingBoxes);
   }, [pdfText]);
 
   // Generate hints for each question using Gemini
-  const generateHintsMutation = useMutation<HintsResponse, Error, string>({
+  const { mutate: generateHintsMutation, isPending: hinting} = useMutation<HintsResponse, Error, string>({
     mutationFn: async (pdfText) => {
         const prompt = `
         You are an assistant that processes educational content. 
@@ -434,7 +280,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
   // Generate hints for each question after bounding boxes are ordered
   useEffect(() => {
     if (pdfText && orderedBoundingBoxes ) {
-      generateHintsMutation.mutate(pdfText);
+      generateHintsMutation(pdfText);
     }
   }, [orderedBoundingBoxes]);
 
@@ -591,13 +437,6 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
     setAdding(false);
   };
 
-  // Only check for paperFolder, since using subject as a dependency causes textract to be called twice
-  useEffect(() => {
-    if (paperFolder) {
-      setLoading(true);
-    }
-  }, [paperFolder]);
-
   useEffect(() => {
     if (workingText) {
       markWorkings();
@@ -612,14 +451,17 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
         <RevisionModal />
       )}
      
-      {loading && 
+      {(fetching || parsing || ordering || hinting) && 
       <div className="flex flex-col items-center">
-        <p className="text-2xl text-yellow-400 mt-5">Parsing and Generating hints...</p>
+        {hinting ? 
+        <p className="text-2xl text-yellow-400 mt-5">Generating hints...</p> :
+        <p className="text-2xl text-yellow-400 mt-5">Parsing PDF...</p>
+        }
         <MoonLoader className="mt-5" color="#edf2f7" size={30}/>
         <p className="text-xs text-main mt-5">Please be patient. This might take a few minutes.</p>
       </div>}
 
-      {error && <p className="text-error mt-2">{error}</p>}
+      {error && <p className="flex items-center text-error mt-2">{error}</p>}
 
       {loadingWorking && <p className="text-yellow-400 mt-2">Marking...</p>}
 
