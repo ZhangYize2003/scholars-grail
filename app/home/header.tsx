@@ -5,11 +5,13 @@ import SideBar from "./sidebar";
 import ProfileMenu from "./profile-menu";
 import Image from 'next/image';
 import logo from "../images/sg-logo.png";
+import { useRevisionContext } from "../components/RevisionContext";
 
 const Header = () => {
-    const [isSideBarOpen, setSideBarOpen] = useState(true);
+    const {isSideBarOpen, setIsSideBarOpen} = useRevisionContext();
+
     const toggleSideBar = () => {
-        setSideBarOpen(!isSideBarOpen);
+        setIsSideBarOpen(!isSideBarOpen);
     };
     
     const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -24,7 +26,7 @@ const Header = () => {
                     <button onClick={toggleSideBar} className="hover:bg-secondary rounded-full p-2 transition-all cursor-pointer">
                         <FiMenu size="20" className="hover:text-blue-100"/>
                     </button>
-                    <SideBar isOpen={isSideBarOpen} onClose={toggleSideBar}/>
+                    <SideBar />
                     <Link href="/" className="flex items-center text-2xl font-bold">
                         <Image src={logo} width={40} height={40} alt="Logo"/>
                         Scholar&apos;s Grail

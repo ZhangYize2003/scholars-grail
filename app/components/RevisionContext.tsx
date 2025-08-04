@@ -2,6 +2,8 @@
 import { createContext, useContext, useState } from "react";
 
 interface revisionContextType {
+  isSideBarOpen: boolean;
+  setIsSideBarOpen: (isSideBarOpen: boolean) => void;
   subject: string;
   setSubject: (subject: string) => void;
   paperFolder: string;
@@ -28,13 +30,14 @@ export default function RevisionProvider({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [isSideBarOpen, setIsSideBarOpen] = useState<boolean>(true);
   const [subject, setSubject] = useState<string>("");
   const [paperFolder, setPaperFolder] = useState<string>("");
   const [paper, setPaper] = useState<File | null>(null);
   const [working, setWorking] = useState<File | null>(null);
 
   return (
-    <revisionContext.Provider value={{subject, setSubject, paperFolder, setPaperFolder, paper, setPaper, working, setWorking}}>                              
+    <revisionContext.Provider value={{isSideBarOpen, setIsSideBarOpen, subject, setSubject, paperFolder, setPaperFolder, paper, setPaper, working, setWorking}}>                              
         {children}
     </revisionContext.Provider> 
   );

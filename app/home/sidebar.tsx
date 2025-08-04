@@ -1,18 +1,14 @@
 import Link from 'next/link';
 import { FiHome, FiFileText, FiFolder } from "react-icons/fi";
+import { useRevisionContext } from "../components/RevisionContext";
 
-interface SideBarProps {
-    isOpen: boolean;
-    onClose: () => void;
-}
-
-
-const SideBar = ({isOpen}: SideBarProps) => {
+const SideBar = () => {
+    const {isSideBarOpen} = useRevisionContext();
 
     return (
         <div className={`fixed top-16 left-0 h-screen w-45 bg-primary shadow-lg transform transition-transform 
                         duration-300 z-50 flex flex-col justify-between border-t-1 border-stroke
-                        ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
+                        ${isSideBarOpen ? "translate-x-0" : "-translate-x-full"}`}>
             <div className="flex flex-col pt-4 text-sm text-main font-normal">
                 <Link href="/" className="sidebar_button">
                     <FiHome size="20" /> 

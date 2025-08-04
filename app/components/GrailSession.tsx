@@ -44,7 +44,7 @@ type S3File = {
 };
 // adding testOutput supports testing after output has been set
 export default function GrailSession({ testOutput }: { testOutput?: HintsResponse | null }) {
-  const {subject, paperFolder, working} = useRevisionContext();
+  const {subject, paperFolder, working, setIsSideBarOpen} = useRevisionContext();
   const [uid, setUid] = useState<string | null>(null);
   const [pdfText, setPdfText] = useState<string>("");
   const [workingText, setWorkingText] = useState<string>("");
@@ -64,6 +64,17 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
   const handleExit = () => {
     window.location.reload();
   };
+
+  // Closes the Side Bar once a grail session is triggered
+  const closeSideBar = () => {
+    setIsSideBarOpen(false);
+  };
+
+  useEffect(() => {
+    if (output != null) {
+      closeSideBar();
+    }
+  }, [output]);
 
   // Gets the uid so we don't have to call it every time
   useEffect(() => {
