@@ -479,7 +479,12 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
               </div>
             }
 
-            {(parsingWorking || marking) && <p className="text-yellow-400 mt-2">Marking...</p>}
+            {(parsingWorking || marking) && 
+            <div className="flex flex-col items-center">
+                <p className="text-yellow-400 text-xl mt-2">Marking...</p>
+                <MoonLoader className="mt-5" color="#edf2f7" size={30}/>
+            </div>
+            }
 
             {/* Appears once the working is marked */}
             <div>              
