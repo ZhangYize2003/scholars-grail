@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FiUser, FiLogOut, FiSettings} from "react-icons/fi";
+import { FiUser, FiLogOut} from "react-icons/fi";
 import { useRouter } from "next/navigation";
 
 interface ProfileMenuProps {
@@ -16,22 +16,18 @@ const ProfileMenu = ({isOpen}: ProfileMenuProps) => {
     };
 
     return (
-        <div className={`fixed top-16 right-2 h-40 w-30 bg-secondary shadow-lg z-50
+        <div className={`fixed top-16 right-2 h-30 w-30 bg-secondary shadow-lg z-50
                         flex flex-col justify-between border-t-1 border-stroke rounded-md
                         ${isOpen ? "translate-x-0" : "opacity-0 pointer-events-none"}`}>
-            <div className="flex flex-col mt-3 text-sm text-main font-normal">
+            <div className="flex flex-col mt-4 text-sm text-main font-normal">
                 <Link href="/profile" className="profile_menu">
-                    <FiUser size="20" /> 
+                    <FiUser size="20" />
                     Profile
                 </Link>
                 <button onClick={handleSignOut} className="profile_menu">
                     <FiLogOut size="20" />
                     Sign out
                 </button>
-                <Link href="/" className="profile_menu"> {/* Placeholder href */}
-                    <FiSettings size="20" />
-                    Settings
-                </Link>
             </div>
         </div> 
     );
