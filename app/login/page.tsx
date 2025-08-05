@@ -5,6 +5,7 @@ import { auth, db } from '../firebase/config';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { FiEye, FiEyeOff} from "react-icons/fi";
 import Image from 'next/image';
 import logo from "../images/sg-logo.png";
@@ -69,7 +70,19 @@ export default function SignInPage() {
       }
       
       try {
-          const res = await signInWithEmailAndPassword(email, password);
+          let emailToUse = email;
+          // if user enters username instead of email
+          if (!email.includes('@')) {
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('userName', '==', email));
+            const querySnapshot = await getDocs(q);
+            if (querySnapshot.empty) {
+              setError('Username not found');
+              return;
+            }
+            emailToUse = querySnapshot.docs[0].data().email;
+          };
+          const res = await signInWithEmailAndPassword(emailToUse, password);
           console.log({res});
           setPassword('');
           if (res){
@@ -109,7 +122,7 @@ export default function SignInPage() {
               <input
                 id="email"
                 name="email"
-                type="email"
+                type="text"
                 autoComplete="email"
                 required
                 value={email}

@@ -4,6 +4,7 @@ import { useCreateUserWithEmailAndPassword } from 'react-firebase-hooks/auth'
 import { auth, db } from '../firebase/config'
 import Link from 'next/link'
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { FiEye, FiEyeOff} from "react-icons/fi";
 import Image from 'next/image';
 import logo from "../images/sg-logo.png";
@@ -19,6 +20,21 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [createUserWithEmailAndPassword] = useCreateUserWithEmailAndPassword(auth);
   const [accountCreated, setAccountCreated] = useState(false);
+
+  const checkUserNameExists = async (userName: string) => {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('userName', '==', userName));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error checking username:", error);
+      return false;
+    }
+  }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +114,15 @@ export default function SignUpPage() {
                   autoComplete="username"
                   required
                   value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
+                  onChange={(e) => setUserName(e.target.value)} // just store what user types
+                  onBlur={async () => {
+                    const exists = await checkUserNameExists(userName);
+                    if (exists && userName !== '') {
+                      setError("Username already exists");
+                    } else {
+                      setError(''); // clear any previous error
+                    }
+                  }}
                   className="placeholder_text"
                   placeholder="Enter your username"
                 />
