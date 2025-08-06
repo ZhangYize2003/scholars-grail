@@ -171,15 +171,16 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     const data = await s3Client.send(listCommand);
 
-    const pdfFiles = (data.Contents || []).filter(
-      (item) => item.Key && item.Key.endsWith(".pdf")
+    const supportedFiles = (data.Contents || []).filter(
+      (item) => item.Key && 
+      (item.Key.endsWith(".pdf") || item.Key.endsWith(".jpg") || item.Key.endsWith(".jpeg") || item.Key.endsWith(".png"))
     );
 
     let combinedText = "";
     const allBoundingBoxes: { file: string; boxes: LineData[] }[] = [];
 
     // Process each file in the repo -> Useful when user uploads ques paper and answer key
-    for (const file of pdfFiles) {
+    for (const file of supportedFiles) {
       const key = file.Key!;
       console.log(`Starting Textract job for ${key}`);
       const jobId = await startAsyncTextDetection(key);

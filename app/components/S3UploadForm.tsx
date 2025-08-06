@@ -76,7 +76,7 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
 
         const data = await response.json();
         const paperKey = data.files.find((file: {key: string}) => 
-            file.key.endsWith(`/${fileName}.pdf`)
+            file.key.includes(`/${fileName}`)
         );
         console.log("data:", data.files);
 
@@ -85,13 +85,25 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
             setPaper(paperKey);
         }
         else {
-            console.log(`Error: cannot locate file ${fileName}.pdf`);
+            console.log(`Error: cannot locate file ${fileName}`);
         }
     };
 
     const handlePaperUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const selectedFile = e.target.files[0];
+            const fileType = selectedFile.type;
+            console.log("Selected file type:", fileType);
+            const isValidType = fileType === "application/pdf" 
+                                || fileType === "image/jpeg" 
+                                || fileType === "image/jpg" 
+                                || fileType === "image/png";
+            if (!isValidType) {
+                alert("Please select a PDF or Image file.");
+                setPaper(null);
+                e.target.value = "";
+                return;
+            }
             if (selectedFile.type === "application/pdf") {
                 const fileReader = new FileReader();
                 fileReader.onload = function() {
