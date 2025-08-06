@@ -19,6 +19,17 @@ const S3UploadForm2 = ({setOpenModal2}: props) => {
     const handleWorkingSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const selectedFile = e.target.files[0];
+            const fileType = selectedFile.type;
+            const isValidType = fileType === "application/pdf" 
+                                || fileType === "image/jpeg" 
+                                || fileType === "image/jpg" 
+                                || fileType === "image/png";
+            if (!isValidType) {
+                alert("Please select a PDF or Image file.");
+                setPaper(null);
+                e.target.value = "";
+                return;
+            }
             if (selectedFile.type === "application/pdf") {
                 const fileReader = new FileReader();
                 fileReader.onload = function() {

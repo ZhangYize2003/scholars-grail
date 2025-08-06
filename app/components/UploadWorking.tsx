@@ -63,6 +63,16 @@ export default function UploadingWorking() {
     const handleWorkingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const selectedFile = e.target.files[0];
+            const fileType = selectedFile.type;
+            console.log("Selected file type:", fileType);
+            const isValidType = fileType === "application/pdf" 
+                                || fileType === "image/jpeg" 
+                                || fileType === "image/jpg" 
+                                || fileType === "image/png";
+            if (!isValidType) {
+                alert("Please select a PDF or Image file.");
+                return;
+            }
             processFile(selectedFile);
             e.target.value = ""; // reset input
         } else {
@@ -75,6 +85,15 @@ export default function UploadingWorking() {
         const file = e.dataTransfer.files?.[0];
         if (file) {
             console.log("File dropped:", file.name);
+            const fileType = file.type;
+            const isValidType = fileType === "application/pdf" 
+                                || fileType === "image/jpeg" 
+                                || fileType === "image/jpg" 
+                                || fileType === "image/png";
+            if (!isValidType) {
+                alert("Please drop a PDF or Image file.");
+                return;
+            }
             processFile(file);
         }
     };

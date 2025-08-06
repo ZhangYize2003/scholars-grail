@@ -93,7 +93,6 @@ const S3UploadForm = ({setOpenModal, setOpenModal2}: props) => {
         if (e.target.files && e.target.files.length > 0) {
             const selectedFile = e.target.files[0];
             const fileType = selectedFile.type;
-            console.log("Selected file type:", fileType);
             const isValidType = fileType === "application/pdf" 
                                 || fileType === "image/jpeg" 
                                 || fileType === "image/jpg" 
