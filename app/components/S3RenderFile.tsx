@@ -52,7 +52,7 @@ export default function S3RenderFile() {
       }
       return (await response.json());
     },
-    enabled: !!uid && currentPrefix !== "",
+    enabled: !!uid && currentPrefix != "",
     // Cashe for 15 min
     gcTime: 15*60*1000,
   });
