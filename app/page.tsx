@@ -41,7 +41,9 @@ export default function Home() {
         <h1 className="pt-20 text-3xl">
           Welcome{userName ? `, ${userName}!` : ""}
         </h1>
-      <RevisionModal></RevisionModal>
+      <div className="mt-2">
+        <RevisionModal/>
+      </div>
       <Main/>
     </div>
   );

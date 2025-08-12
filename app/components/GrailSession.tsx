@@ -44,7 +44,7 @@ type S3File = {
 };
 // adding testOutput supports testing after output has been set
 export default function GrailSession({ testOutput }: { testOutput?: HintsResponse | null }) {
-  const {subject, paperFolder, working, setIsSideBarOpen} = useRevisionContext();
+  const {subject, paperFolder, working, setWorking, setIsSideBarOpen} = useRevisionContext();
   const [uid, setUid] = useState<string | null>(null);
   const [pdfText, setPdfText] = useState<string>("");
   const [workingText, setWorkingText] = useState<string>("");
@@ -63,6 +63,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
   // Handle exit button click -> Refreshes the page
   const handleExit = () => {
     window.location.reload();
+    setWorking(null);
   };
 
   // Closes the Side Bar once a grail session is triggered
@@ -459,7 +460,9 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
       <Header />
       <h1 className="pt-20">Grail Session</h1>
       {!output && (
-        <RevisionModal />
+        <div className="mt-2">
+          <RevisionModal/>
+        </div>
       )}
      
       {(fetching || parsing || ordering || hinting) && !parsingWorking &&
@@ -491,8 +494,8 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
             }
 
             {(parsingWorking || marking) && 
-            <div className="flex flex-col items-center">
-                <p className="text-yellow-400 text-xl mt-2">Marking...</p>
+            <div className="flex flex-col items-center justify-center">
+                <p className="text-yellow-400 text-xl mt-20">Marking...</p>
                 <MoonLoader className="mt-5" color="#edf2f7" size={30}/>
             </div>
             }
@@ -500,7 +503,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
             {/* Appears once the working is marked */}
             <div>              
               {marked && paperFolder !== "Challenging Questions" && (
-              <div className="w-full bg-secondary rounded p-4 shadow-lg space-y-6">
+              <div className="w-full bg-secondary rounded p-4 space-y-6">
                 <h2 className="font-bold mb-4 text-lg">Add these to {subject}&apos;s Challenging questions Repo.</h2>
 
                 <div className="flex flex-wrap gap-3 justify-center mt-4">
