@@ -4,6 +4,26 @@ import {generateHints} from '../../utils/generateHints'
 import UploadWorking from '../../components/UploadWorking';
 import Page from '@/app/grail-session/page';
 import React, { act } from 'react';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// Need to add in queryclient as fetching is from useQuery now
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+function renderWithProviders(ui: React.ReactElement) {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {ui}
+    </QueryClientProvider>
+  );
+}
 
 global.fetch = jest.fn(() =>
   Promise.resolve({
@@ -64,10 +84,10 @@ const createMockFile = (name: string, type: string, content: string) => {
 };
 
 test("renders header and initial elements", () => {
-  render(<Page />);
+  renderWithProviders(<Page/>);
   const elements = screen.getAllByText(/Grail Session/i);
   expect(elements[0]).toBeInTheDocument();
-  expect(screen.getByText(/Parsing and Generating hints.../i)).toBeInTheDocument();
+  expect(screen.getByText(/Parsing PDF.../i)).toBeInTheDocument();
 });
 
 // Check if working can be dropped and uploaded

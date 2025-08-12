@@ -1,6 +1,26 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import Page from "@/app/grail-session/page";
+import GrailSession from "@/app/components/GrailSession";
 import RevisionProvider from "@/app/components/RevisionContext";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// Need to add in queryclient as fetching is from useQuery now
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+function renderWithProviders(ui: React.ReactElement) {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <RevisionProvider>{ui}</RevisionProvider>
+    </QueryClientProvider>
+  );
+}
 
 const mockRouterPush = jest.fn();
 // Mock window.location.reload to prevent actual page reload during tests
@@ -21,17 +41,14 @@ jest.mock("next/navigation", () => ({
   }),
 }));
 
+
 test("renders Exit button when output is present and handles click", () => {
   const mockOutput = {
     numberOfQuestions: 2,
     hints: ["Hint 1", "Hint 2"],
   };
 
-  render(
-    <RevisionProvider>
-      <Page testOutput={mockOutput} />
-    </RevisionProvider>
-  );
+  renderWithProviders(<GrailSession testOutput={mockOutput} />);
 
   const exitBtn = screen.getByRole("button", { name: /exit/i });
   expect(exitBtn).toBeInTheDocument();
@@ -42,11 +59,7 @@ test("renders Exit button when output is present and handles click", () => {
 });
 
 test("does not render Exit button when output is not present", () => {
-  render(
-    <RevisionProvider>
-      <Page testOutput={null} />
-    </RevisionProvider>
-  );
+  renderWithProviders(<GrailSession testOutput={null}/>);
 
   const exitBtn = screen.queryByRole("button", { name: /exit/i });
   expect(exitBtn).not.toBeInTheDocument();
