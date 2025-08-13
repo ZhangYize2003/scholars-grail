@@ -465,7 +465,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
         </div>
       )}
      
-      {(fetching || parsing || ordering || hinting) &&
+      {(fetching || parsing || ordering || hinting) && !output &&
       <div className="flex flex-col items-center">
         {hinting ? 
         <p className="text-2xl text-yellow-400 mt-5">Generating hints...</p> :
