@@ -62,7 +62,8 @@ const Main = () => {
   // Sorts the files by the latest modified date
   let latestFiles: S3File[] = [];
   if (repoFiles && repoFiles.length > 0) {
-    latestFiles = repoFiles.toSorted((a, b) => {
+    latestFiles = repoFiles.filter((file) => !file.key.endsWith(".json")) // Prevents challenging questions json file from showing
+      .toSorted((a, b) => {
       const dateA = a.lastModified ? new Date(a.lastModified) : new Date(0);
       const dateB = b.lastModified ? new Date(b.lastModified) : new Date(0);
       return dateB.getTime() - dateA.getTime();
@@ -105,7 +106,7 @@ const Main = () => {
               <ul className="list-disc pl-5">
                 {latestFiles.map((file) => (
                   <li key={file.key}>
-                    <a className="text-accent" href={file.url} target="_blank" rel="noopener noreferrer">
+                    <a className="text-blue-500" href={file.url} target="_blank" rel="noopener noreferrer">
                       {file.key.split("/").pop()}
                     </a>
                   </li>

@@ -465,7 +465,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
         </div>
       )}
      
-      {(fetching || parsing || ordering || hinting) && !parsingWorking &&
+      {(fetching || parsing || ordering || hinting) &&
       <div className="flex flex-col items-center">
         {hinting ? 
         <p className="text-2xl text-yellow-400 mt-5">Generating hints...</p> :
@@ -476,8 +476,6 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
       </div>}
 
       {error && <p className="flex flex-col items-center text-error mt-2">{error}</p>}
-
-      {adding && <p className="text-yellow-400 mt-2">Adding to Challenging Questions repo...</p>}
       
       {/* Wait for Bounding Boxes to be ordered before displaying*/}
       {output && orderedBoundingBoxes && (
@@ -537,6 +535,7 @@ export default function GrailSession({ testOutput }: { testOutput?: HintsRespons
                 >
                 {adding ? "Adding..." : "Add"}
                 </button>
+                {adding && <p className="text-yellow-400 text-center mt-2">Adding to Challenging Questions repo...</p>}
               </div>
             )}
             </div>
